@@ -1,31 +1,141 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ChevronLeft, Clock, Users, Globe, Lock, Send,
-  Plus, Tag, GitBranch, MessageCircle, BookHeart
+  Plus, Tag, GitBranch, MessageCircle, BookHeart, Loader2
 } from "lucide-react";
-import { MOCK_RECIPES, CHAT_SUGGESTIONS } from "@/lib/mock-data";
+import { createClient } from "@/lib/supabase";
+import { CHAT_SUGGESTIONS } from "@/lib/mock-data";
 
 type Tab = "recipe" | "chat" | "memories" | "versions";
-
 interface ChatMessage { role: "user" | "assistant"; text: string }
+
+interface Recipe {
+  id: string;
+  title: string;
+  description: string | null;
+  notes: string | null;
+  cook_time: string | null;
+  yield: string | null;
+  is_public: boolean;
+  user_id: string;
+}
+
+interface IngredientGroup {
+  id: string;
+  section: string | null;
+  items: string[];
+  sort_order: number;
+}
+
+interface Step { id: string; content: string; sort_order: number }
+
+interface Comment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+}
+
+interface Memory {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  tagged_people: string[];
+}
+
+interface Version {
+  id: string;
+  label: string;
+  notes: string | null;
+  created_at: string;
+  author_id: string | null;
+}
 
 export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const recipe = MOCK_RECIPES.find((r) => r.id === id);
+  const [loading, setLoading] = useState(true);
+  const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [ingredients, setIngredients] = useState<IngredientGroup[]>([]);
+  const [steps, setSteps] = useState<Step[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [versions, setVersions] = useState<Version[]>([]);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
 
   const [tab, setTab] = useState<Tab>("recipe");
   const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { role: "assistant", text: `I know this recipe well. Ask me anything about ${recipe?.title ?? "it"} — substitutions, technique, storage, or what Amma's notes mean.` }
-  ]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newMemory, setNewMemory] = useState("");
   const [newComment, setNewComment] = useState("");
-  const [memories, setMemories] = useState(recipe?.memories ?? []);
-  const [comments, setComments] = useState(recipe?.comments ?? []);
+  const [savingComment, setSavingComment] = useState(false);
+  const [savingMemory, setSavingMemory] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
+
+      const [
+        { data: recipeData },
+        { data: ingredientData },
+        { data: stepData },
+        { data: tagData },
+        { data: commentData },
+        { data: memoryData },
+        { data: versionData },
+        { data: profileData },
+      ] = await Promise.all([
+        supabase.from("recipes").select("id, title, description, notes, cook_time, yield, is_public, user_id").eq("id", id).single(),
+        supabase.from("recipe_ingredients").select("id, section, items, sort_order").eq("recipe_id", id).order("sort_order"),
+        supabase.from("recipe_steps").select("id, content, sort_order").eq("recipe_id", id).order("sort_order"),
+        supabase.from("recipe_tags").select("tag").eq("recipe_id", id),
+        supabase.from("recipe_comments").select("id, content, created_at, user_id").eq("recipe_id", id).order("created_at"),
+        supabase.from("recipe_memories").select("id, content, created_at, user_id, tagged_people").eq("recipe_id", id).order("created_at"),
+        supabase.from("recipe_versions").select("id, label, notes, created_at, author_id").eq("recipe_id", id).order("created_at"),
+        supabase.from("profiles").select("id, name, email").eq("id", user.id).single(),
+      ]);
+
+      if (!recipeData) { router.push("/recipes"); return; }
+
+      setRecipe(recipeData as Recipe);
+      setIngredients((ingredientData ?? []) as IngredientGroup[]);
+      setSteps((stepData ?? []) as Step[]);
+      setTags((tagData ?? []).map((t: { tag: string }) => t.tag));
+      setComments((commentData ?? []) as Comment[]);
+      setMemories((memoryData ?? []) as Memory[]);
+      setVersions((versionData ?? []) as Version[]);
+
+      const name = profileData?.name ?? profileData?.email?.split("@")[0] ?? "You";
+      setCurrentUser({ id: user.id, name });
+
+      setChatMessages([{
+        role: "assistant",
+        text: `I know this recipe well. Ask me anything about ${recipeData.title} — substitutions, technique, storage, or what the notes mean.`,
+      }]);
+      setLoading(false);
+    };
+    load();
+  }, [id, router]);
+
+  if (loading) {
+    return (
+      <main className="max-w-lg mx-auto px-4 pt-10">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 bg-stone-200 rounded w-8" />
+          <div className="h-8 bg-stone-200 rounded w-64" />
+          <div className="h-4 bg-stone-200 rounded w-48" />
+          <div className="h-48 bg-stone-200 rounded-2xl" />
+        </div>
+      </main>
+    );
+  }
 
   if (!recipe) return null;
 
@@ -39,68 +149,66 @@ export default function RecipeDetailPage() {
   const handleChat = (msg?: string) => {
     const text = msg ?? chatInput;
     if (!text.trim()) return;
-    const userMsg: ChatMessage = { role: "user", text };
-    setChatMessages((prev) => [...prev, userMsg]);
+    setChatMessages((prev) => [...prev, { role: "user", text }]);
     setChatInput("");
-
-    // Simulated response
     setTimeout(() => {
-      const responses: Record<string, string> = {
-        "bedige": "Bedige chillies (also called byadgi) are a Karnatakan variety prized for deep red colour and mild heat. If unavailable, substitute with Kashmiri chillies — same colour benefit, similar mild heat. Do NOT use cayenne as a 1:1 swap, it will overwhelm the dish.",
-        "substitute": "The most common substitution question for this recipe is the bedige chilli. Kashmiri chillies are the closest. For the dal ratios, you can shift slightly more toward chana dal if you want a nuttier, milder powder.",
-        "long": "Stored in an airtight container away from moisture and direct light, this podi keeps for 3 months at room temperature. In the freezer it lasts up to a year — portion it before freezing so you're not defrosting the whole batch each time.",
-        "grinder": "Yes, a high-speed blender works. The texture will be slightly finer than a stone grinder. Pulse rather than run continuously to avoid overheating the spices — heat activates the oils prematurely and shortens shelf life.",
-        "methi": "Methi (fenugreek) added in large quantities creates bitterness. Small amounts add a complex, slightly bitter depth that balances the heat and tartness. Amma's ratio keeps it in the background — you feel it more than taste it.",
-      };
-      const key = Object.keys(responses).find((k) => text.toLowerCase().includes(k));
-      const reply = key
-        ? responses[key]
-        : "That's a great question about this recipe. Based on what I know about South Indian spice blends and Amma's notes, the key principle here is balance between colour (bedige), heat (regular chilli), and depth (dal). What specifically would you like to explore?";
-      setChatMessages((prev) => [...prev, { role: "assistant", text: reply }]);
+      setChatMessages((prev) => [...prev, {
+        role: "assistant",
+        text: "That's a great question. Based on what I know about this recipe, the key is balance — between the spices, the cooking technique, and the family tradition behind it. What specifically would you like to explore?",
+      }]);
     }, 800);
   };
 
-  const handleAddMemory = () => {
-    if (!newMemory.trim()) return;
-    setMemories((prev) => [
-      ...prev,
-      { id: `m${Date.now()}`, author: "Pri", avatar: "P", text: newMemory, date: new Date().toISOString().split("T")[0], tagged_people: [] },
-    ]);
-    setNewMemory("");
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !currentUser) return;
+    setSavingComment(true);
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("recipe_comments")
+      .insert({ recipe_id: id, user_id: currentUser.id, content: newComment.trim() })
+      .select("id, content, created_at, user_id")
+      .single();
+    if (data) { setComments((prev) => [...prev, data as Comment]); setNewComment(""); }
+    setSavingComment(false);
   };
 
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
-    setComments((prev) => [
-      ...prev,
-      { id: `c${Date.now()}`, author: "Pri", avatar: "P", text: newComment, date: new Date().toISOString().split("T")[0] },
-    ]);
-    setNewComment("");
+  const handleAddMemory = async () => {
+    if (!newMemory.trim() || !currentUser) return;
+    setSavingMemory(true);
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("recipe_memories")
+      .insert({ recipe_id: id, user_id: currentUser.id, content: newMemory.trim(), tagged_people: [] })
+      .select("id, content, created_at, user_id, tagged_people")
+      .single();
+    if (data) { setMemories((prev) => [...prev, data as Memory]); setNewMemory(""); }
+    setSavingMemory(false);
   };
+
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  const nameFor = (userId: string) =>
+    currentUser?.id === userId ? (currentUser?.name ?? "You") : "Family member";
+
+  const initial = (name: string) => name[0]?.toUpperCase() ?? "?";
 
   return (
     <main className="max-w-lg mx-auto min-h-screen bg-stone-50">
-      {/* Header */}
       <div className="sticky top-0 bg-white/90 backdrop-blur-sm border-b border-stone-100 z-10 px-4 py-3">
         <div className="flex items-center justify-between mb-3">
           <button onClick={() => router.back()} className="flex items-center gap-1 text-stone-500 text-sm">
             <ChevronLeft className="w-4 h-4" /> Back
           </button>
-          <div className="flex items-center gap-2">
-            {recipe.is_public
-              ? <span className="flex items-center gap-1 text-xs text-stone-400"><Globe className="w-3 h-3" /> Public</span>
-              : <span className="flex items-center gap-1 text-xs text-stone-400"><Lock className="w-3 h-3" /> Private</span>}
-          </div>
+          <span className="flex items-center gap-1 text-xs text-stone-400">
+            {recipe.is_public ? <><Globe className="w-3 h-3" /> Public</> : <><Lock className="w-3 h-3" /> Private</>}
+          </span>
         </div>
-        {/* Tabs */}
         <div className="flex gap-1">
           {TABS.map(({ key, label, icon }) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
+            <button key={key} onClick={() => setTab(key)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all
-                ${tab === key ? "bg-amber-600 text-white" : "text-stone-500 hover:bg-stone-100"}`}
-            >
+                ${tab === key ? "bg-amber-600 text-white" : "text-stone-500 hover:bg-stone-100"}`}>
               {icon}{label}
             </button>
           ))}
@@ -108,77 +216,94 @@ export default function RecipeDetailPage() {
       </div>
 
       <div className="px-4 py-5">
-        {/* Title block — always visible */}
         <h1 className="text-2xl font-serif text-stone-800 mb-1">{recipe.title}</h1>
-        <p className="text-stone-500 text-sm mb-3">{recipe.description}</p>
-        <div className="flex items-center gap-4 text-stone-400 text-xs mb-6">
+        {recipe.description && <p className="text-stone-500 text-sm mb-3">{recipe.description}</p>}
+        <div className="flex items-center gap-4 text-stone-400 text-xs mb-4">
           {recipe.cook_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{recipe.cook_time}</span>}
           {recipe.yield && <span className="flex items-center gap-1"><Users className="w-3 h-3" />{recipe.yield}</span>}
-          <span className="text-stone-300">·</span>
-          <span>by {recipe.author_name}</span>
           <span className="ml-auto flex items-center gap-1">
             <MessageCircle className="w-3 h-3" />{comments.length}
             <Tag className="w-3 h-3 ml-2" />{memories.length}
           </span>
         </div>
+        {tags.length > 0 && (
+          <div className="flex gap-1.5 flex-wrap mb-6">
+            {tags.map((tag) => (
+              <span key={tag} className="text-[10px] bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">{tag}</span>
+            ))}
+          </div>
+        )}
 
         {/* ── RECIPE TAB ── */}
         {tab === "recipe" && (
           <div className="space-y-6">
-            <section>
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-4">Ingredients</h2>
-              <div className="space-y-5">
-                {recipe.ingredients.map((group, gi) => (
-                  <div key={gi}>
-                    {group.section && (
-                      <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2">{group.section}</p>
-                    )}
-                    <ul className="space-y-2">
-                      {group.items.map((ing, i) => (
-                        <li key={i} className="flex items-start gap-2 text-stone-700 text-sm">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
-                          {ing}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </section>
+            {ingredients.length > 0 && (
+              <section>
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-4">Ingredients</h2>
+                <div className="space-y-5">
+                  {ingredients.map((group) => (
+                    <div key={group.id}>
+                      {group.section && (
+                        <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2">{group.section}</p>
+                      )}
+                      <ul className="space-y-2">
+                        {group.items.map((ing, i) => (
+                          <li key={i} className="flex items-start gap-2 text-stone-700 text-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
+                            {ing}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
-            <section>
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-4">Instructions</h2>
-              <ol className="space-y-4">
-                {recipe.steps.map((step, i) => (
-                  <li key={i} className="flex gap-3 text-sm text-stone-700">
-                    <span className="font-serif text-amber-600 text-lg leading-snug shrink-0 w-5">{i + 1}</span>
-                    <span className="leading-relaxed">{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </section>
+            {steps.length > 0 && (
+              <section>
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-4">Instructions</h2>
+                <ol className="space-y-4">
+                  {steps.map((step, i) => (
+                    <li key={step.id} className="flex gap-3 text-sm text-stone-700">
+                      <span className="font-serif text-amber-600 text-lg leading-snug shrink-0 w-5">{i + 1}</span>
+                      <span className="leading-relaxed">{step.content}</span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
 
             {recipe.notes && (
               <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-amber-600 mb-2">Amma&apos;s notes</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-600 mb-2">Family notes</p>
                 <p className="text-stone-600 text-sm leading-relaxed italic">{recipe.notes}</p>
               </div>
             )}
 
-            {/* Comments */}
             <section>
               <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-3">Comments</h2>
-              <div className="space-y-3 mb-3">
-                {comments.map((c) => (
-                  <div key={c.id} className="flex gap-3">
-                    <div className="w-7 h-7 rounded-full bg-stone-200 flex items-center justify-center text-xs font-medium text-stone-600 shrink-0">{c.avatar}</div>
-                    <div className="bg-white rounded-xl border border-stone-100 px-3 py-2 flex-1">
-                      <p className="text-xs font-medium text-stone-600 mb-0.5">{c.author}</p>
-                      <p className="text-sm text-stone-700">{c.text}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {comments.length > 0 && (
+                <div className="space-y-3 mb-3">
+                  {comments.map((c) => {
+                    const name = nameFor(c.user_id);
+                    return (
+                      <div key={c.id} className="flex gap-3">
+                        <div className="w-7 h-7 rounded-full bg-stone-200 flex items-center justify-center text-xs font-medium text-stone-600 shrink-0">
+                          {initial(name)}
+                        </div>
+                        <div className="bg-white rounded-xl border border-stone-100 px-3 py-2 flex-1">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <p className="text-xs font-medium text-stone-600">{name}</p>
+                            <p className="text-xs text-stone-300">{formatDate(c.created_at)}</p>
+                          </div>
+                          <p className="text-sm text-stone-700">{c.content}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               <div className="flex gap-2">
                 <input
                   value={newComment}
@@ -187,8 +312,9 @@ export default function RecipeDetailPage() {
                   placeholder="Add a comment..."
                   className="flex-1 text-sm bg-white border border-stone-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-400"
                 />
-                <button onClick={handleAddComment} className="bg-amber-600 text-white rounded-xl px-3 hover:bg-amber-700 transition-colors">
-                  <Send className="w-4 h-4" />
+                <button onClick={handleAddComment} disabled={savingComment}
+                  className="bg-amber-600 text-white rounded-xl px-3 hover:bg-amber-700 transition-colors disabled:opacity-50">
+                  {savingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </button>
               </div>
             </section>
@@ -198,20 +324,17 @@ export default function RecipeDetailPage() {
         {/* ── CHAT TAB ── */}
         {tab === "chat" && (
           <div className="flex flex-col" style={{ minHeight: "60vh" }}>
-            <p className="text-xs text-stone-400 mb-4 text-center">Ask anything about this recipe — substitutions, technique, storage, what the notes mean.</p>
-
-            {/* Suggestion chips */}
+            <p className="text-xs text-stone-400 mb-4 text-center">Ask anything about this recipe — substitutions, technique, storage.</p>
             {chatMessages.length <= 1 && (
               <div className="flex flex-wrap gap-2 mb-4">
                 {CHAT_SUGGESTIONS.map((s) => (
-                  <button key={s} onClick={() => handleChat(s)} className="text-xs bg-stone-100 text-stone-600 px-3 py-1.5 rounded-full hover:bg-amber-50 hover:text-amber-700 transition-colors text-left">
+                  <button key={s} onClick={() => handleChat(s)}
+                    className="text-xs bg-stone-100 text-stone-600 px-3 py-1.5 rounded-full hover:bg-amber-50 hover:text-amber-700 transition-colors text-left">
                     {s}
                   </button>
                 ))}
               </div>
             )}
-
-            {/* Messages */}
             <div className="space-y-3 flex-1 mb-4">
               {chatMessages.map((m, i) => (
                 <div key={i} className={`flex gap-2 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
@@ -225,8 +348,6 @@ export default function RecipeDetailPage() {
                 </div>
               ))}
             </div>
-
-            {/* Input */}
             <div className="flex gap-2">
               <input
                 value={chatInput}
@@ -235,7 +356,8 @@ export default function RecipeDetailPage() {
                 placeholder="Ask about this recipe..."
                 className="flex-1 text-sm bg-white border border-stone-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-400"
               />
-              <button onClick={() => handleChat()} className="bg-amber-600 text-white rounded-xl px-3 hover:bg-amber-700 transition-colors">
+              <button onClick={() => handleChat()}
+                className="bg-amber-600 text-white rounded-xl px-3 hover:bg-amber-700 transition-colors">
                 <Send className="w-4 h-4" />
               </button>
             </div>
@@ -246,30 +368,30 @@ export default function RecipeDetailPage() {
         {tab === "memories" && (
           <div className="space-y-4">
             <p className="text-sm text-stone-500">Stories, moments, and people connected to this recipe. These live alongside it forever.</p>
-
-            {memories.map((m) => (
-              <div key={m.id} className="bg-white border border-stone-100 rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-full bg-stone-200 flex items-center justify-center text-xs font-medium text-stone-600">{m.avatar}</div>
-                  <div>
-                    <p className="text-xs font-medium text-stone-700">{m.author}</p>
-                    <p className="text-xs text-stone-400">{m.date}</p>
+            {memories.map((m) => {
+              const name = nameFor(m.user_id);
+              return (
+                <div key={m.id} className="bg-white border border-stone-100 rounded-2xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-7 h-7 rounded-full bg-stone-200 flex items-center justify-center text-xs font-medium text-stone-600">{initial(name)}</div>
+                    <div>
+                      <p className="text-xs font-medium text-stone-700">{name}</p>
+                      <p className="text-xs text-stone-400">{formatDate(m.created_at)}</p>
+                    </div>
                   </div>
+                  <p className="text-stone-700 text-sm leading-relaxed italic">&ldquo;{m.content}&rdquo;</p>
+                  {m.tagged_people.length > 0 && (
+                    <div className="flex gap-1.5 mt-3">
+                      {m.tagged_people.map((p) => (
+                        <span key={p} className="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Tag className="w-2.5 h-2.5" />{p}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <p className="text-stone-700 text-sm leading-relaxed italic">&ldquo;{m.text}&rdquo;</p>
-                {m.tagged_people.length > 0 && (
-                  <div className="flex gap-1.5 mt-3">
-                    {m.tagged_people.map((p) => (
-                      <span key={p} className="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <Tag className="w-2.5 h-2.5" />{p}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {/* Add memory */}
+              );
+            })}
             <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
               <p className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1"><Plus className="w-3 h-3" /> Add a memory</p>
               <textarea
@@ -279,8 +401,9 @@ export default function RecipeDetailPage() {
                 rows={3}
                 className="w-full text-sm bg-white border border-amber-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-400 resize-none"
               />
-              <button onClick={handleAddMemory} className="mt-2 w-full bg-amber-600 text-white text-sm py-2.5 rounded-xl hover:bg-amber-700 transition-colors font-medium">
-                Save memory
+              <button onClick={handleAddMemory} disabled={savingMemory}
+                className="mt-2 w-full bg-amber-600 text-white text-sm py-2.5 rounded-xl hover:bg-amber-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50">
+                {savingMemory ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : "Save memory"}
               </button>
             </div>
           </div>
@@ -290,24 +413,23 @@ export default function RecipeDetailPage() {
         {tab === "versions" && (
           <div className="space-y-4">
             <p className="text-sm text-stone-500">Different people make this differently. Each version is a branch of the same root recipe.</p>
-
-            {recipe.versions.map((v, i) => (
-              <div key={v.id} className={`bg-white border rounded-2xl p-4 ${i === 0 ? "border-amber-200" : "border-stone-100"}`}>
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <GitBranch className="w-3.5 h-3.5 text-amber-600" />
-                      <p className="font-medium text-stone-800 text-sm">{v.label}</p>
-                      {i === 0 && <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Original</span>}
-                    </div>
-                    <p className="text-xs text-stone-400 mt-0.5">by {v.author} · {v.date}</p>
+            {versions.length === 0 && (
+              <div className="text-center py-8 text-stone-400 text-sm">No versions yet. Be the first to save yours.</div>
+            )}
+            {versions.map((v, i) => {
+              const authorName = v.author_id ? nameFor(v.author_id) : "Unknown";
+              return (
+                <div key={v.id} className={`bg-white border rounded-2xl p-4 ${i === 0 ? "border-amber-200" : "border-stone-100"}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <GitBranch className="w-3.5 h-3.5 text-amber-600" />
+                    <p className="font-medium text-stone-800 text-sm">{v.label}</p>
+                    {i === 0 && <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Original</span>}
                   </div>
+                  <p className="text-xs text-stone-400 mb-2">by {authorName} · {formatDate(v.created_at)}</p>
+                  {v.notes && <p className="text-stone-600 text-sm italic">{v.notes}</p>}
                 </div>
-                <p className="text-stone-600 text-sm italic">{v.notes}</p>
-              </div>
-            ))}
-
-            {/* Add version */}
+              );
+            })}
             <button className="w-full border-2 border-dashed border-stone-200 rounded-2xl p-4 text-stone-400 text-sm flex items-center justify-center gap-2 hover:border-amber-300 hover:text-amber-600 transition-colors">
               <Plus className="w-4 h-4" /> Save my version of this recipe
             </button>

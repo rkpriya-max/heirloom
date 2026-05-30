@@ -1,18 +1,68 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Flame, Users, CalendarDays, ChevronRight } from "lucide-react";
-import { MOCK_RECIPES, MOCK_FAMILY, MOCK_EVENTS, CURRENT_USER } from "@/lib/mock-data";
+import { useRouter } from "next/navigation";
+import { Plus, CalendarDays, ChevronRight, BookOpen, LogOut } from "lucide-react";
+import { createClient } from "@/lib/supabase";
 
-const ACTIVITY = [
-  { id: 1, avatar: "K", name: "Kavya", action: "added a memory to", target: "Patti's Puliyodharai", time: "2h ago", href: "/recipes/r3" },
-  { id: 2, avatar: "R", name: "Rajan Uncle", action: "commented on", target: "Amma's Sambar Podi", time: "5h ago", href: "/recipes/r1" },
-  { id: 3, avatar: "M", name: "Meena Aunty", action: "joined the family", target: "", time: "1d ago", href: "/family/fam-1" },
-];
+interface Recipe {
+  id: string;
+  title: string;
+  description: string | null;
+  created_at: string;
+}
+
+interface Profile {
+  name: string | null;
+  email: string | null;
+}
 
 export default function HomePage() {
-  const recentRecipes = MOCK_RECIPES.slice(0, 3);
-  const nextEvent = MOCK_EVENTS[0];
+  const router = useRouter();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
+
+      const [{ data: prof }, { data: recs }] = await Promise.all([
+        supabase.from("profiles").select("name, email").eq("id", user.id).single(),
+        supabase.from("recipes").select("id, title, description, created_at")
+          .eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
+      ]);
+
+      setProfile(prof);
+      setRecipes(recs ?? []);
+      setLoading(false);
+    };
+    load();
+  }, [router]);
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
+  const displayName = profile?.name ?? profile?.email?.split("@")[0] ?? "…";
+  const initial = displayName[0]?.toUpperCase() ?? "?";
+
+  if (loading) {
+    return (
+      <main className="max-w-lg mx-auto px-4 pt-10">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-stone-200 rounded w-32" />
+          <div className="h-32 bg-stone-200 rounded-2xl" />
+          <div className="h-24 bg-stone-200 rounded-2xl" />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="max-w-lg mx-auto px-4 pt-10 space-y-8">
@@ -20,10 +70,15 @@ export default function HomePage() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-stone-400 text-sm">Good morning</p>
-          <h1 className="text-2xl font-serif text-stone-800">{CURRENT_USER.name}</h1>
+          <h1 className="text-2xl font-serif text-stone-800">{displayName}</h1>
         </div>
-        <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-semibold">
-          {CURRENT_USER.avatar}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-semibold">
+            {initial}
+          </div>
+          <button onClick={handleSignOut} className="text-stone-300 hover:text-stone-500 transition-colors">
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -41,72 +96,50 @@ export default function HomePage() {
         </Link>
       </div>
 
-      {/* Upcoming event */}
-      {nextEvent && (
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400">Next event</h2>
-            <Link href="/events/ev1" className="text-xs text-amber-600">See all</Link>
-          </div>
-          <Link href={`/events/${nextEvent.id}`} className="block bg-white rounded-2xl border border-stone-100 p-4 hover:border-stone-200 transition-colors">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="font-medium text-stone-800">{nextEvent.title}</p>
-                <p className="text-stone-400 text-sm mt-0.5">{new Date(nextEvent.date).toLocaleDateString("en-US", { month: "long", day: "numeric" })}</p>
-                <p className="text-stone-500 text-xs mt-2">{nextEvent.menu_recipe_ids.length} recipes in menu · {nextEvent.guests.length} guests</p>
-              </div>
-              <div className="bg-amber-50 rounded-xl p-2">
-                <Flame className="w-5 h-5 text-amber-500" />
-              </div>
-            </div>
-          </Link>
-        </section>
-      )}
-
-      {/* Family activity */}
+      {/* Recipes */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400">Family activity</h2>
-          <Link href="/family/fam-1" className="text-xs text-amber-600 flex items-center gap-0.5">
-            <Users className="w-3 h-3" /> {MOCK_FAMILY.members.length} members
-          </Link>
-        </div>
-        <div className="space-y-2">
-          {ACTIVITY.map((item) => (
-            <Link key={item.id} href={item.href} className="flex items-start gap-3 bg-white rounded-xl border border-stone-100 px-4 py-3 hover:border-stone-200 transition-colors">
-              <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-600 text-sm font-medium shrink-0">
-                {item.avatar}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-stone-700">
-                  <span className="font-medium">{item.name}</span> {item.action}
-                  {item.target && <span className="font-medium"> {item.target}</span>}
-                </p>
-                <p className="text-xs text-stone-400 mt-0.5">{item.time}</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-stone-300 shrink-0 mt-0.5" />
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Recent recipes */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400">My recipes</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400">
+            My recipes {recipes.length > 0 && `(${recipes.length})`}
+          </h2>
           <Link href="/recipes" className="text-xs text-amber-600">See all</Link>
         </div>
-        <div className="space-y-2">
-          {recentRecipes.map((r) => (
-            <Link key={r.id} href={`/recipes/${r.id}`} className="flex items-center gap-3 bg-white rounded-xl border border-stone-100 px-4 py-3 hover:border-stone-200 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-xl shrink-0">🍲</div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-stone-800 text-sm truncate">{r.title}</p>
-                <p className="text-xs text-stone-400 mt-0.5">{r.tags.join(" · ")}</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-stone-300 shrink-0" />
-            </Link>
-          ))}
+
+        {recipes.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-stone-100 p-8 text-center">
+            <div className="text-4xl mb-3">📋</div>
+            <p className="text-stone-600 font-medium mb-1">No recipes yet</p>
+            <p className="text-stone-400 text-sm mb-4">Scan a handwritten card or type one in.</p>
+            <Link href="/recipes/new" className="text-amber-600 text-sm font-medium">Add your first recipe →</Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {recipes.map((r) => (
+              <Link key={r.id} href={`/recipes/${r.id}`}
+                className="flex items-center gap-3 bg-white rounded-xl border border-stone-100 px-4 py-3 hover:border-stone-200 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-xl shrink-0">🍲</div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-stone-800 text-sm truncate">{r.title}</p>
+                  {r.description && <p className="text-xs text-stone-400 truncate mt-0.5">{r.description}</p>}
+                </div>
+                <ChevronRight className="w-4 h-4 text-stone-300 shrink-0" />
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Explore */}
+      <section>
+        <div className="bg-stone-100 rounded-2xl p-4 flex items-center gap-4">
+          <div className="bg-white rounded-xl p-3">
+            <BookOpen className="w-5 h-5 text-stone-400" />
+          </div>
+          <div className="flex-1">
+            <p className="font-medium text-stone-700 text-sm">Create a family</p>
+            <p className="text-stone-400 text-xs mt-0.5">Share recipes and memories across generations</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-stone-300" />
         </div>
       </section>
     </main>
