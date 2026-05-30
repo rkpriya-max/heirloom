@@ -131,7 +131,7 @@ export default function HomePage() {
 
       {/* Explore */}
       <section>
-        <div className="bg-stone-100 rounded-2xl p-4 flex items-center gap-4">
+        <Link href="/family" className="bg-stone-100 rounded-2xl p-4 flex items-center gap-4 hover:bg-stone-200 transition-colors">
           <div className="bg-white rounded-xl p-3">
             <BookOpen className="w-5 h-5 text-stone-400" />
           </div>
@@ -140,7 +140,7 @@ export default function HomePage() {
             <p className="text-stone-400 text-xs mt-0.5">Share recipes and memories across generations</p>
           </div>
           <ChevronRight className="w-4 h-4 text-stone-300" />
-        </div>
+        </Link>
       </section>
     </main>
   );
