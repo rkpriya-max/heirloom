@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { digitizeRecipe } from "@/lib/claude";
+import { digitizeRecipes } from "@/lib/claude";
 
 export const maxDuration = 60;
 
@@ -35,9 +35,9 @@ export async function POST(req: NextRequest) {
       | "image/webp"
       | "image/gif";
 
-    const recipe = await digitizeRecipe(base64, mediaType);
+    const recipes = await digitizeRecipes(base64, mediaType);
 
-    return NextResponse.json({ recipe, imageBase64: base64, mediaType });
+    return NextResponse.json({ recipes, imageBase64: base64, mediaType });
   } catch (error) {
     console.error("Digitize error:", error);
     return NextResponse.json(

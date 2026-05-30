@@ -62,7 +62,7 @@ export default function UploadPage() {
       }
 
       // Store result in sessionStorage for the review page
-      sessionStorage.setItem("heirloom_recipe", JSON.stringify(data.recipe));
+      sessionStorage.setItem("heirloom_recipes", JSON.stringify(data.recipes));
       sessionStorage.setItem("heirloom_image", data.imageBase64);
       sessionStorage.setItem("heirloom_media_type", data.mediaType);
 
