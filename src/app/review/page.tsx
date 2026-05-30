@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, CheckCircle, ChevronLeft, Save, Layers } from "lucide-react";
-import type { ExtractedRecipe, IngredientSection } from "@/lib/claude";
+import { AlertTriangle, CheckCircle, ChevronLeft, Save, Layers, Loader2 } from "lucide-react";
+import type { ExtractedRecipe } from "@/lib/claude";
+import { createClient } from "@/lib/supabase";
 
 function ConfidenceBadge({ confidence, needsReview }: { confidence: number; needsReview: boolean }) {
   if (needsReview) {
@@ -23,17 +24,9 @@ function ConfidenceBadge({ confidence, needsReview }: { confidence: number; need
 }
 
 function ReviewField({
-  label,
-  value,
-  confidence,
-  needsReview,
-  onChange,
+  label, value, confidence, needsReview, onChange,
 }: {
-  label: string;
-  value: string;
-  confidence: number;
-  needsReview: boolean;
-  onChange: (v: string) => void;
+  label: string; value: string; confidence: number; needsReview: boolean; onChange: (v: string) => void;
 }) {
   return (
     <div className={`rounded-xl p-4 ${needsReview ? "bg-amber-50 border border-amber-200" : "bg-white border border-stone-100"}`}>
@@ -61,16 +54,37 @@ interface EditableRecipe {
   notes: string;
 }
 
+interface IngredientSection { section?: string; items: string[] }
+
 function ingredientsToText(sections: IngredientSection[]): string {
   if (!sections || sections.length === 0) return "";
-  // If single section with no header, just list items
-  if (sections.length === 1 && !sections[0].section) {
-    return sections[0].items.join("\n");
-  }
-  // Multiple sections or named sections — use headers
+  if (sections.length === 1 && !sections[0].section) return sections[0].items.join("\n");
   return sections
     .map((s) => (s.section ? `## ${s.section}\n${s.items.join("\n")}` : s.items.join("\n")))
     .join("\n\n");
+}
+
+function textToIngredients(text: string): IngredientSection[] {
+  if (!text.trim()) return [];
+  const sections: IngredientSection[] = [];
+  let current: IngredientSection = { items: [] };
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (trimmed.startsWith("##")) {
+      if (current.items.length > 0 || current.section) sections.push(current);
+      current = { section: trimmed.replace(/^##\s*/, ""), items: [] };
+    } else {
+      current.items.push(trimmed);
+    }
+  }
+  if (current.items.length > 0) sections.push(current);
+  return sections;
+}
+
+function textToSteps(text: string): string[] {
+  if (!text.trim()) return [];
+  return text.split("\n").map((l) => l.trim().replace(/^\d+\.\s*/, "")).filter(Boolean);
 }
 
 function initEditable(recipe: ExtractedRecipe): EditableRecipe {
@@ -93,15 +107,15 @@ export default function ReviewPage() {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const raw = sessionStorage.getItem("heirloom_recipes");
     const img = sessionStorage.getItem("heirloom_image");
     const mt = sessionStorage.getItem("heirloom_media_type");
-
     if (!raw) { router.replace("/upload"); return; }
-
     const parsed: ExtractedRecipe[] = JSON.parse(raw);
     setRecipes(parsed);
     setEditables(parsed.map(initEditable));
@@ -109,27 +123,76 @@ export default function ReviewPage() {
     setMediaType(mt);
   }, [router]);
 
-  const updateField = (recipeIdx: number, field: keyof EditableRecipe, value: string) => {
-    setEditables((prev) => prev.map((e, i) => i === recipeIdx ? { ...e, [field]: value } : e));
-  };
+  const updateField = (idx: number, field: keyof EditableRecipe, value: string) =>
+    setEditables((prev) => prev.map((e, i) => i === idx ? { ...e, [field]: value } : e));
 
-  const handleSave = () => {
-    const existing = JSON.parse(localStorage.getItem("heirloom_recipes") || "[]");
-    const newEntries = editables.map((e) => ({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      title: e.title,
-      ingredients: e.ingredients.split("\n").filter(Boolean),
-      steps: e.steps.split("\n").filter(Boolean),
-      yield: e.yield,
-      cook_time: e.cook_time,
-      notes: e.notes,
-      image: imageBase64,
-      media_type: mediaType,
-      created_at: new Date().toISOString(),
-    }));
-    localStorage.setItem("heirloom_recipes", JSON.stringify([...existing, ...newEntries]));
+  const handleSave = async () => {
+    setSaving(true);
+    setError("");
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { router.push("/login"); return; }
+
+    const savedIds: string[] = [];
+
+    for (const e of editables) {
+      const { data: recipe, error: recipeError } = await supabase
+        .from("recipes")
+        .insert({
+          user_id: user.id,
+          title: e.title.trim() || "Untitled recipe",
+          yield: e.yield.trim() || null,
+          cook_time: e.cook_time.trim() || null,
+          notes: e.notes.trim() || null,
+          original_image_base64: imageBase64,
+        })
+        .select("id")
+        .single();
+
+      if (recipeError || !recipe) {
+        setError("Failed to save. Check your connection and try again.");
+        setSaving(false);
+        return;
+      }
+
+      const recipeId = recipe.id;
+      savedIds.push(recipeId);
+
+      const ops = [];
+
+      const ingredientGroups = textToIngredients(e.ingredients);
+      if (ingredientGroups.length > 0) {
+        ops.push(...ingredientGroups.map((group, i) =>
+          supabase.from("recipe_ingredients").insert({
+            recipe_id: recipeId,
+            section: group.section || null,
+            items: group.items,
+            sort_order: i,
+          })
+        ));
+      }
+
+      const parsedSteps = textToSteps(e.steps);
+      if (parsedSteps.length > 0) {
+        ops.push(...parsedSteps.map((content, i) =>
+          supabase.from("recipe_steps").insert({ recipe_id: recipeId, content, sort_order: i })
+        ));
+      }
+
+      await Promise.all(ops);
+    }
+
+    // Clear sessionStorage
+    sessionStorage.removeItem("heirloom_recipes");
+    sessionStorage.removeItem("heirloom_image");
+    sessionStorage.removeItem("heirloom_media_type");
+
     setSaved(true);
-    setTimeout(() => router.push("/archive"), 1200);
+    if (savedIds.length === 1) {
+      setTimeout(() => router.push(`/recipes/${savedIds[0]}`), 1000);
+    } else {
+      setTimeout(() => router.push("/recipes"), 1000);
+    }
   };
 
   if (recipes.length === 0) return null;
@@ -143,34 +206,32 @@ export default function ReviewPage() {
 
   return (
     <main className="min-h-screen bg-stone-50">
-      {/* Top bar */}
       <div className="sticky top-0 bg-white border-b border-stone-100 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <button onClick={() => router.back()} className="flex items-center gap-1 text-stone-500 text-sm">
-            <ChevronLeft className="w-4 h-4" />
-            Back
+            <ChevronLeft className="w-4 h-4" /> Back
           </button>
           <h1 className="text-stone-800 font-serif text-lg">Review</h1>
           <button
             onClick={handleSave}
-            disabled={saved}
+            disabled={saving || saved}
             className={`flex items-center gap-1.5 text-sm px-4 py-1.5 rounded-full transition-all
-              ${saved ? "bg-green-100 text-green-700" : "bg-amber-600 text-white hover:bg-amber-700"}`}
+              ${saved ? "bg-green-100 text-green-700" : "bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"}`}
           >
-            {saved ? <><CheckCircle className="w-3.5 h-3.5" /> Saved</> : <><Save className="w-3.5 h-3.5" /> Save {multi ? "all" : ""}</>}
+            {saved
+              ? <><CheckCircle className="w-3.5 h-3.5" /> Saved</>
+              : saving
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving...</>
+              : <><Save className="w-3.5 h-3.5" /> Save {multi ? "all" : ""}</>}
           </button>
         </div>
 
-        {/* Multi-recipe tabs */}
         {multi && (
           <div className="max-w-2xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
-            {recipes.map((r, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveTab(i)}
+            {recipes.map((_, i) => (
+              <button key={i} onClick={() => setActiveTab(i)}
                 className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all
-                  ${activeTab === i ? "bg-amber-600 text-white" : "bg-stone-100 text-stone-500 hover:bg-stone-200"}`}
-              >
+                  ${activeTab === i ? "bg-amber-600 text-white" : "bg-stone-100 text-stone-500 hover:bg-stone-200"}`}>
                 {editables[i]?.title || `Recipe ${i + 1}`}
               </button>
             ))}
@@ -179,17 +240,15 @@ export default function ReviewPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        {/* Multi-recipe notice */}
         {multi && (
           <div className="bg-stone-100 border border-stone-200 rounded-xl px-4 py-3 flex items-start gap-3">
             <Layers className="w-4 h-4 text-stone-500 mt-0.5 shrink-0" />
             <p className="text-stone-600 text-sm">
-              Found <strong>{recipes.length} recipes</strong> on this card. Each will be saved as a separate entry. Switch between them using the tabs above.
+              Found <strong>{recipes.length} recipes</strong> on this card. Each will be saved as a separate entry.
             </p>
           </div>
         )}
 
-        {/* Review flag notice */}
         {reviewCount > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-3">
             <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
@@ -198,13 +257,12 @@ export default function ReviewPage() {
                 {reviewCount} field{reviewCount > 1 ? "s need" : " needs"} review
               </p>
               <p className="text-amber-600 text-xs mt-0.5">
-                Highlighted fields were unclear. Check and correct anything wrong.
+                Highlighted in amber — check and correct anything that looks wrong.
               </p>
             </div>
           </div>
         )}
 
-        {/* Original image */}
         <details className="bg-white border border-stone-100 rounded-xl overflow-hidden">
           <summary className="px-4 py-3 text-sm text-stone-500 cursor-pointer select-none hover:bg-stone-50">
             Original card
@@ -220,7 +278,6 @@ export default function ReviewPage() {
           </div>
         </details>
 
-        {/* Editable fields */}
         {edit && (
           <>
             <ReviewField label="Recipe title" value={edit.title} confidence={active.title.confidence} needsReview={active.title.needs_review} onChange={(v) => updateField(activeTab, "title", v)} />
@@ -234,14 +291,18 @@ export default function ReviewPage() {
           </>
         )}
 
+        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
         <button
           onClick={handleSave}
-          disabled={saved}
-          className={`w-full py-4 rounded-xl font-medium text-sm transition-all
-            ${saved ? "bg-green-100 text-green-700" : "bg-amber-600 hover:bg-amber-700 text-white shadow-sm"}`}
+          disabled={saving || saved}
+          className={`w-full py-4 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2
+            ${saved ? "bg-green-100 text-green-700" : "bg-amber-600 hover:bg-amber-700 text-white shadow-sm disabled:opacity-50"}`}
         >
           {saved
-            ? "Saved. Taking you to your archive..."
+            ? "Saved — taking you to your recipe..."
+            : saving
+            ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving to your collection...</>
             : multi
             ? `Save all ${recipes.length} recipes`
             : "Save recipe"}
