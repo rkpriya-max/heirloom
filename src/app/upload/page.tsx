@@ -98,7 +98,6 @@ export default function UploadPage() {
             id="file-input"
             type="file"
             accept="image/*"
-            capture="environment"
             className="hidden"
             onChange={onInputChange}
           />
