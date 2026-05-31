@@ -45,7 +45,7 @@ export default function UploadPage() {
       const url = URL.createObjectURL(f);
       img.onload = () => {
         URL.revokeObjectURL(url);
-        const MAX = 1600;
+        const MAX = 1200;
         const scale = Math.min(1, MAX / Math.max(img.width, img.height));
         const w = Math.round(img.width * scale);
         const h = Math.round(img.height * scale);
@@ -55,7 +55,7 @@ export default function UploadPage() {
         canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
         canvas.toBlob(
           (blob) => resolve(blob ? new File([blob], "recipe.jpg", { type: "image/jpeg" }) : f),
-          "image/jpeg", 0.85
+          "image/jpeg", 0.75
         );
       };
       img.onerror = () => { URL.revokeObjectURL(url); resolve(f); };
@@ -73,10 +73,15 @@ export default function UploadPage() {
       const formData = new FormData();
       formData.append("image", compressed);
 
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 25000);
+
       const res = await fetch("/api/digitize", {
         method: "POST",
         body: formData,
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       const data = await res.json();
 
@@ -92,8 +97,11 @@ export default function UploadPage() {
       sessionStorage.setItem("heirloom_media_type", data.mediaType);
 
       router.push("/review");
-    } catch {
-      setError("Failed to connect. Check your internet and try again.");
+    } catch (err) {
+      const msg = err instanceof Error && err.name === "AbortError"
+        ? "Took too long — try a clearer photo with better lighting."
+        : "Failed to connect. Check your internet and try again.";
+      setError(msg);
       setLoading(false);
     }
   };
