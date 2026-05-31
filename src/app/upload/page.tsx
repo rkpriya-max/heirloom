@@ -37,6 +37,8 @@ export default function UploadPage() {
   const [supported, setSupported] = useState(true);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,14 +54,19 @@ export default function UploadPage() {
     recognitionRef.current = recognition;
   }, []);
 
-  const toggleRecording = () => {
+  const toggleRecording = async () => {
     const recognition = recognitionRef.current;
     if (!recognition) return;
+
     if (recording) {
       recognition.stop();
+      mediaRecorderRef.current?.stop();
       setRecording(false);
     } else {
       setTranscript("");
+      sessionStorage.removeItem("heirloom_voice_audio");
+      sessionStorage.removeItem("heirloom_voice_type");
+
       let finalText = "";
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       recognition.onresult = (e: any) => {
@@ -71,6 +78,31 @@ export default function UploadPage() {
         }
         setTranscript(finalText + interim);
       };
+
+      // Capture raw audio in parallel with speech recognition
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/ogg";
+        const mediaRecorder = new MediaRecorder(stream, { mimeType });
+        audioChunksRef.current = [];
+        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(audioChunksRef.current, { type: mimeType });
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = (reader.result as string).split(",")[1];
+            sessionStorage.setItem("heirloom_voice_audio", base64);
+            sessionStorage.setItem("heirloom_voice_type", mimeType);
+          };
+          reader.readAsDataURL(blob);
+          stream.getTracks().forEach((t) => t.stop());
+        };
+        mediaRecorder.start();
+        mediaRecorderRef.current = mediaRecorder;
+      } catch {
+        // Audio capture failed — transcript still works, just no recording saved
+      }
+
       recognition.start();
       setRecording(true);
     }

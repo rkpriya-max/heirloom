@@ -121,12 +121,23 @@ function initEditable(recipe: ExtractedRecipe): EditableRecipe {
   }
 }
 
+function base64ToBlob(base64: string, mimeType: string): Blob {
+  const byteString = atob(base64);
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+  return new Blob([ab], { type: mimeType });
+}
+
 export default function ReviewPage() {
   const router = useRouter();
   const [recipes, setRecipes] = useState<ExtractedRecipe[]>([]);
   const [editables, setEditables] = useState<EditableRecipe[]>([]);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<string | null>(null);
+  const [voiceAudioBase64, setVoiceAudioBase64] = useState<string | null>(null);
+  const [voiceAudioType, setVoiceAudioType] = useState<string | null>(null);
+  const [voiceRecordedBy, setVoiceRecordedBy] = useState("");
   const [activeTab, setActiveTab] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -137,6 +148,8 @@ export default function ReviewPage() {
       const raw = sessionStorage.getItem("heirloom_recipes");
       const img = sessionStorage.getItem("heirloom_image");
       const mt = sessionStorage.getItem("heirloom_media_type");
+      const voiceAudio = sessionStorage.getItem("heirloom_voice_audio");
+      const voiceType = sessionStorage.getItem("heirloom_voice_type");
       if (!raw) { router.replace("/upload"); return; }
       const parsed: ExtractedRecipe[] = JSON.parse(raw);
       const list = Array.isArray(parsed) ? parsed : [parsed];
@@ -144,6 +157,8 @@ export default function ReviewPage() {
       setEditables(list.map(initEditable));
       setImageBase64(img);
       setMediaType(mt);
+      setVoiceAudioBase64(voiceAudio);
+      setVoiceAudioType(voiceType);
     } catch (e) {
       console.error("Review page parse error:", e);
       router.replace("/upload");
@@ -206,12 +221,43 @@ export default function ReviewPage() {
       }
 
       await Promise.all(ops);
+
+      // Upload original scan image to storage
+      if (imageBase64 && mediaType) {
+        const ext = mediaType.includes("png") ? "png" : "jpg";
+        const blob = base64ToBlob(imageBase64, mediaType);
+        const { data: imgUpload } = await supabase.storage
+          .from("recipe-media")
+          .upload(`recipes/${recipeId}/original.${ext}`, blob, { upsert: true });
+        if (imgUpload) {
+          const { data: urlData } = supabase.storage.from("recipe-media").getPublicUrl(imgUpload.path);
+          await supabase.from("recipes").update({ original_image_url: urlData.publicUrl }).eq("id", recipeId);
+        }
+      }
+
+      // Upload voice recording to storage
+      if (voiceAudioBase64 && voiceAudioType) {
+        const ext = voiceAudioType.includes("ogg") ? "ogg" : "webm";
+        const blob = base64ToBlob(voiceAudioBase64, voiceAudioType);
+        const { data: audioUpload } = await supabase.storage
+          .from("recipe-media")
+          .upload(`recipes/${recipeId}/voice.${ext}`, blob, { upsert: true });
+        if (audioUpload) {
+          const { data: urlData } = supabase.storage.from("recipe-media").getPublicUrl(audioUpload.path);
+          await supabase.from("recipes").update({
+            voice_recording_url: urlData.publicUrl,
+            voice_recorded_by: voiceRecordedBy.trim() || null,
+          }).eq("id", recipeId);
+        }
+      }
     }
 
     // Clear sessionStorage
     sessionStorage.removeItem("heirloom_recipes");
     sessionStorage.removeItem("heirloom_image");
     sessionStorage.removeItem("heirloom_media_type");
+    sessionStorage.removeItem("heirloom_voice_audio");
+    sessionStorage.removeItem("heirloom_voice_type");
 
     setSaved(true);
     if (savedIds.length === 1) {
@@ -315,6 +361,19 @@ export default function ReviewPage() {
             </div>
             <ReviewField label="Notes & family annotations" value={edit.notes} confidence={active.notes.confidence} needsReview={active.notes.needs_review} onChange={(v) => updateField(activeTab, "notes", v)} />
           </>
+        )}
+
+        {/* Voice attribution — only shown when a recording was captured */}
+        {voiceAudioBase64 && (
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
+            <label className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2 block">🎙️ Voice recording saved</label>
+            <input
+              value={voiceRecordedBy}
+              onChange={(e) => setVoiceRecordedBy(e.target.value)}
+              placeholder="Who recorded this? e.g. Amma, May 2026"
+              className="w-full bg-white border border-amber-200 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:border-amber-400"
+            />
+          </div>
         )}
 
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}

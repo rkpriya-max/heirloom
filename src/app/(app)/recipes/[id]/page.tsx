@@ -22,6 +22,9 @@ interface Recipe {
   yield: string | null;
   is_public: boolean;
   user_id: string;
+  original_image_url: string | null;
+  voice_recording_url: string | null;
+  voice_recorded_by: string | null;
 }
 
 interface IngredientGroup {
@@ -94,7 +97,7 @@ export default function RecipeDetailPage() {
         { data: versionData },
         { data: profileData },
       ] = await Promise.all([
-        supabase.from("recipes").select("id, title, description, notes, cook_time, yield, is_public, user_id").eq("id", id).single(),
+        supabase.from("recipes").select("id, title, description, notes, cook_time, yield, is_public, user_id, original_image_url, voice_recording_url, voice_recorded_by").eq("id", id).single(),
         supabase.from("recipe_ingredients").select("id, section, items, sort_order").eq("recipe_id", id).order("sort_order"),
         supabase.from("recipe_steps").select("id, content, sort_order").eq("recipe_id", id).order("sort_order"),
         supabase.from("recipe_tags").select("tag").eq("recipe_id", id),
@@ -240,6 +243,30 @@ export default function RecipeDetailPage() {
         {/* ── RECIPE TAB ── */}
         {tab === "recipe" && (
           <div className="space-y-6">
+
+            {/* Original handwritten scan */}
+            {recipe.original_image_url && (
+              <details className="bg-white border border-stone-100 rounded-xl overflow-hidden">
+                <summary className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-stone-400 cursor-pointer select-none hover:bg-stone-50">
+                  📜 Original card
+                </summary>
+                <div className="px-4 pb-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={recipe.original_image_url} alt="Original handwritten card" className="w-full rounded-lg object-contain max-h-80" />
+                </div>
+              </details>
+            )}
+
+            {/* Voice recording */}
+            {recipe.voice_recording_url && (
+              <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2">
+                  🎙️ {recipe.voice_recorded_by ? `Recorded by ${recipe.voice_recorded_by}` : "Voice recording"}
+                </p>
+                <audio controls src={recipe.voice_recording_url} className="w-full" />
+              </div>
+            )}
+
             {ingredients.length > 0 && (
               <section>
                 <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-4">Ingredients</h2>
