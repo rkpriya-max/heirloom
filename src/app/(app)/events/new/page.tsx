@@ -59,7 +59,7 @@ export default function NewEventPage() {
       .single();
 
     if (eventError || !event) {
-      setError("Failed to create event. Try again.");
+      setError(eventError?.message ?? "Failed to create event — unknown error.");
       setSaving(false);
       return;
     }
