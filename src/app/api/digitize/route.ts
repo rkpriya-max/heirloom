@@ -39,9 +39,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ recipes, imageBase64: base64, mediaType });
   } catch (error) {
-    console.error("Digitize error:", error);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Digitize error:", msg);
     return NextResponse.json(
-      { error: "Failed to digitize recipe. Please try again." },
+      { error: `Failed to digitize: ${msg.slice(0, 120)}` },
       { status: 500 }
     );
   }

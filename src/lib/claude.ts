@@ -86,7 +86,7 @@ export async function digitizeRecipes(
   mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif"
 ): Promise<ExtractedRecipe[]> {
   const response = await client.messages.create({
-    model: "claude-sonnet-4-5-20250929",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 4096,
     messages: [
       {
@@ -103,7 +103,12 @@ export async function digitizeRecipes(
   });
 
   const text = response.content[0].type === "text" ? response.content[0].text : "";
-  const jsonText = text.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
+  // Extract JSON robustly: strip markdown fences, then find the outermost { }
+  const stripped = text.replace(/^```(?:json)?\s*/m, "").replace(/\s*```\s*$/m, "").trim();
+  const jsonStart = stripped.indexOf("{");
+  const jsonEnd = stripped.lastIndexOf("}");
+  if (jsonStart === -1 || jsonEnd === -1) throw new Error(`No JSON found in response: ${text.slice(0, 200)}`);
+  const jsonText = stripped.slice(jsonStart, jsonEnd + 1);
   const parsed = JSON.parse(jsonText);
 
   const rawRecipes = Array.isArray(parsed.recipes) ? parsed.recipes : [parsed];
