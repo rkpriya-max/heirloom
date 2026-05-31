@@ -86,7 +86,7 @@ export async function digitizeRecipes(
   mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif"
 ): Promise<ExtractedRecipe[]> {
   const response = await client.messages.create({
-    model: "claude-opus-4-7",
+    model: "claude-sonnet-4-5-20250929",
     max_tokens: 4096,
     messages: [
       {

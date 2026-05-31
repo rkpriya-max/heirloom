@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { digitizeRecipes } from "@/lib/claude";
 
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   try {
