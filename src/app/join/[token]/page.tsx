@@ -35,9 +35,10 @@ export default function JoinPage() {
       setUserId(user?.id ?? null);
 
       // Use RPC to get invite + family name (bypasses RLS for unauthenticated users)
-      const { data, error: rpcErr } = await supabase
+      const { data: rpcData, error: rpcErr } = await supabase
         .rpc("get_invite_details", { p_token: token })
         .single();
+      const data = rpcData as InviteData | null;
 
       if (rpcErr || !data) {
         setError("This invite link is invalid or has expired.");

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, CalendarDays, ChevronRight, BookOpen, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase";
+import Onboarding, { useOnboarding } from "@/components/Onboarding";
 
 interface Recipe {
   id: string;
@@ -26,17 +27,12 @@ function getGreeting() {
   return "Good evening";
 }
 
-function isNewUser(createdAt: string) {
-  const diff = Date.now() - new Date(createdAt).getTime();
-  return diff < 1000 * 60 * 5; // created within last 5 minutes
-}
-
 export default function HomePage() {
   const router = useRouter();
+  const { show: showOnboarding, dismiss: dismissOnboarding } = useOnboarding();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -52,9 +48,6 @@ export default function HomePage() {
 
       setProfile(prof);
       setRecipes(recs ?? []);
-      if (prof?.created_at && isNewUser(prof.created_at)) {
-        setShowWelcome(true);
-      }
       setLoading(false);
     };
     load();
@@ -83,26 +76,9 @@ export default function HomePage() {
   }
 
   return (
+    <>
+      {showOnboarding && <Onboarding onDone={dismissOnboarding} />}
     <main className="max-w-lg mx-auto px-4 pt-10 space-y-8">
-
-      {/* Welcome banner — only for new accounts */}
-      {showWelcome && (
-        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5 relative">
-          <button
-            onClick={() => setShowWelcome(false)}
-            className="absolute top-3 right-4 text-stone-300 hover:text-stone-500 text-lg leading-none"
-          >
-            ×
-          </button>
-          <p className="text-amber-700 font-serif text-lg mb-1">Welcome to Heirloom, {firstName}.</p>
-          <p className="text-amber-600 text-sm leading-relaxed">
-            This is where your family&apos;s recipes live. Start by adding one — scan a handwritten card or type it in.
-          </p>
-          <Link href="/recipes/new" className="inline-block mt-3 text-xs font-semibold text-amber-700 underline underline-offset-2">
-            Add your first recipe →
-          </Link>
-        </div>
-      )}
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -181,5 +157,6 @@ export default function HomePage() {
         </Link>
       </section>
     </main>
+    </>
   );
 }
