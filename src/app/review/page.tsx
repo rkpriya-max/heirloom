@@ -57,10 +57,12 @@ interface EditableRecipe {
 interface IngredientSection { section?: string; items: string[] }
 
 function ingredientsToText(sections: IngredientSection[]): string {
-  if (!sections || sections.length === 0) return "";
-  if (sections.length === 1 && !sections[0].section) return sections[0].items.join("\n");
+  if (!sections || !Array.isArray(sections) || sections.length === 0) return "";
+  const safeItems = (items: unknown) =>
+    Array.isArray(items) ? items.map(String).join("\n") : String(items ?? "");
+  if (sections.length === 1 && !sections[0].section) return safeItems(sections[0].items);
   return sections
-    .map((s) => (s.section ? `## ${s.section}\n${s.items.join("\n")}` : s.items.join("\n")))
+    .map((s) => (s.section ? `## ${s.section}\n${safeItems(s.items)}` : safeItems(s.items)))
     .join("\n\n");
 }
 
@@ -87,17 +89,35 @@ function textToSteps(text: string): string[] {
   return text.split("\n").map((l) => l.trim().replace(/^\d+\.\s*/, "")).filter(Boolean);
 }
 
+function safeStr(v: unknown): string {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  return String(v);
+}
+
 function initEditable(recipe: ExtractedRecipe): EditableRecipe {
-  return {
-    title: recipe.title.value,
-    ingredients: ingredientsToText(recipe.ingredients.value),
-    steps: Array.isArray(recipe.steps.value)
-      ? recipe.steps.value.map((s, i) => `${i + 1}. ${s}`).join("\n")
-      : recipe.steps.value,
-    yield: recipe.yield.value,
-    cook_time: recipe.cook_time.value,
-    notes: recipe.notes.value,
-  };
+  try {
+    const stepsVal = recipe.steps?.value;
+    const stepsText = Array.isArray(stepsVal)
+      ? stepsVal.map((s, i) => `${i + 1}. ${safeStr(s)}`).join("\n")
+      : safeStr(stepsVal);
+
+    const ingredientsVal = recipe.ingredients?.value;
+    const ingredientsText = Array.isArray(ingredientsVal)
+      ? ingredientsToText(ingredientsVal)
+      : safeStr(ingredientsVal);
+
+    return {
+      title: safeStr(recipe.title?.value),
+      ingredients: ingredientsText,
+      steps: stepsText,
+      yield: safeStr(recipe.yield?.value),
+      cook_time: safeStr(recipe.cook_time?.value),
+      notes: safeStr(recipe.notes?.value),
+    };
+  } catch {
+    return { title: "", ingredients: "", steps: "", yield: "", cook_time: "", notes: "" };
+  }
 }
 
 export default function ReviewPage() {
@@ -112,15 +132,21 @@ export default function ReviewPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const raw = sessionStorage.getItem("heirloom_recipes");
-    const img = sessionStorage.getItem("heirloom_image");
-    const mt = sessionStorage.getItem("heirloom_media_type");
-    if (!raw) { router.replace("/upload"); return; }
-    const parsed: ExtractedRecipe[] = JSON.parse(raw);
-    setRecipes(parsed);
-    setEditables(parsed.map(initEditable));
-    setImageBase64(img);
-    setMediaType(mt);
+    try {
+      const raw = sessionStorage.getItem("heirloom_recipes");
+      const img = sessionStorage.getItem("heirloom_image");
+      const mt = sessionStorage.getItem("heirloom_media_type");
+      if (!raw) { router.replace("/upload"); return; }
+      const parsed: ExtractedRecipe[] = JSON.parse(raw);
+      const list = Array.isArray(parsed) ? parsed : [parsed];
+      setRecipes(list);
+      setEditables(list.map(initEditable));
+      setImageBase64(img);
+      setMediaType(mt);
+    } catch (e) {
+      console.error("Review page parse error:", e);
+      router.replace("/upload");
+    }
   }, [router]);
 
   const updateField = (idx: number, field: keyof EditableRecipe, value: string) =>
