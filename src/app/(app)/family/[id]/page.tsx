@@ -102,12 +102,11 @@ export default function FamilyPage() {
 
   const handleCopyLink = async () => {
     if (!inviteLink) return;
-    // Use native share sheet on mobile if available
     if (navigator.share) {
       try {
         await navigator.share({ title: `Join ${family?.name} on Heirloom`, url: inviteLink });
         return;
-      } catch { /* user cancelled share */ return; }
+      } catch { /* user cancelled */ return; }
     }
     try {
       if (navigator.clipboard && window.isSecureContext) {
@@ -328,7 +327,7 @@ export default function FamilyPage() {
                   className={`w-full py-3.5 rounded-xl font-medium text-sm transition-colors mb-2
                     ${copied ? "bg-green-100 text-green-700" : "bg-amber-600 text-white hover:bg-amber-700"}`}
                 >
-                  {copied ? "✓ Copied!" : "Share link"}
+                  {copied ? "✓ Copied to clipboard!" : "Copy invite link"}
                 </button>
                 <button
                   onClick={() => { setShowInvite(false); setInvited(false); setCopied(false); }}
