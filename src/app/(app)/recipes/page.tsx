@@ -12,6 +12,7 @@ interface Recipe {
   description: string | null;
   is_public: boolean;
   created_at: string;
+  cover_image_url: string | null;
   recipe_tags: { tag: string }[];
 }
 
@@ -30,7 +31,7 @@ export default function RecipesPage() {
 
       const { data } = await supabase
         .from("recipes")
-        .select("id, title, description, is_public, created_at, recipe_tags(tag)")
+        .select("id, title, description, is_public, created_at, cover_image_url, recipe_tags(tag)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -114,7 +115,10 @@ export default function RecipesPage() {
           {filtered.map((r) => (
             <Link key={r.id} href={`/recipes/${r.id}`}
               className="flex gap-4 bg-white rounded-2xl border border-stone-100 p-4 hover:border-stone-200 transition-colors">
-              <div className="w-14 h-14 rounded-xl bg-amber-50 flex items-center justify-center text-2xl shrink-0">🍲</div>
+              {r.cover_image_url
+                ? <img src={r.cover_image_url} alt={r.title} className="w-14 h-14 rounded-xl object-cover shrink-0" />
+                : <div className="w-14 h-14 rounded-xl bg-amber-50 flex items-center justify-center text-2xl shrink-0">🍲</div>
+              }
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-medium text-stone-800 text-sm leading-snug">{r.title}</p>

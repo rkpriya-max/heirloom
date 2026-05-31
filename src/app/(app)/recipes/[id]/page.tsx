@@ -25,6 +25,7 @@ interface Recipe {
   original_image_url: string | null;
   voice_recording_url: string | null;
   voice_recorded_by: string | null;
+  cover_image_url: string | null;
 }
 
 interface IngredientGroup {
@@ -79,7 +80,43 @@ export default function RecipeDetailPage() {
   const [newComment, setNewComment] = useState("");
   const [savingComment, setSavingComment] = useState(false);
   const [savingMemory, setSavingMemory] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const { toast, show: showToast, clear: clearToast } = useToast();
+
+  const handleCoverUpload = async (file: File) => {
+    if (!recipe) return;
+    setUploadingCover(true);
+    const supabase = createClient();
+
+    // Compress
+    const compressed = await new Promise<File>((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const MAX = 1200;
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => resolve(blob ? new File([blob], "cover.jpg", { type: "image/jpeg" }) : file), "image/jpeg", 0.82);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+
+    const { data: upload } = await supabase.storage
+      .from("recipe-media")
+      .upload(`recipes/${recipe.id}/cover.jpg`, compressed, { upsert: true });
+
+    if (upload) {
+      const { data: urlData } = supabase.storage.from("recipe-media").getPublicUrl(upload.path);
+      await supabase.from("recipes").update({ cover_image_url: urlData.publicUrl }).eq("id", recipe.id);
+      setRecipe((prev) => prev ? { ...prev, cover_image_url: urlData.publicUrl } : prev);
+    }
+    setUploadingCover(false);
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -97,7 +134,7 @@ export default function RecipeDetailPage() {
         { data: versionData },
         { data: profileData },
       ] = await Promise.all([
-        supabase.from("recipes").select("id, title, description, notes, cook_time, yield, is_public, user_id, original_image_url, voice_recording_url, voice_recorded_by").eq("id", id).single(),
+        supabase.from("recipes").select("id, title, description, notes, cook_time, yield, is_public, user_id, original_image_url, voice_recording_url, voice_recorded_by, cover_image_url").eq("id", id).single(),
         supabase.from("recipe_ingredients").select("id, section, items, sort_order").eq("recipe_id", id).order("sort_order"),
         supabase.from("recipe_steps").select("id, content, sort_order").eq("recipe_id", id).order("sort_order"),
         supabase.from("recipe_tags").select("tag").eq("recipe_id", id),
@@ -219,6 +256,27 @@ export default function RecipeDetailPage() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Cover photo hero */}
+      <div className="relative group">
+        {recipe.cover_image_url ? (
+          <div className="relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={recipe.cover_image_url} alt={recipe.title} className="w-full h-56 object-cover" />
+            <label className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-3 py-1.5 rounded-full cursor-pointer hover:bg-black/70 transition-colors flex items-center gap-1.5">
+              {uploadingCover ? <><span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Uploading...</> : "✏️ Change photo"}
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f); }} />
+            </label>
+          </div>
+        ) : (
+          <label className="block w-full h-40 bg-gradient-to-br from-amber-50 to-stone-100 border-b border-stone-100 cursor-pointer hover:from-amber-100 transition-colors flex flex-col items-center justify-center gap-2 group">
+            {uploadingCover
+              ? <><span className="w-5 h-5 border-2 border-amber-400/40 border-t-amber-600 rounded-full animate-spin" /><span className="text-stone-400 text-xs">Uploading...</span></>
+              : <><span className="text-3xl">📷</span><span className="text-stone-400 text-sm">Add a cover photo</span></>}
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f); }} />
+          </label>
+        )}
       </div>
 
       <div className="px-4 py-5">
