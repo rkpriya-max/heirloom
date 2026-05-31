@@ -85,9 +85,8 @@ export default function SignupPage() {
     <div className="w-full max-w-sm">
       <div className="text-center mb-8">
         <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center text-4xl mx-auto mb-5">📜</div>
-        <h1 className="text-3xl font-serif text-stone-800 mb-2">Heirloom</h1>
-        <p className="text-stone-700 font-medium mb-1">Some recipes only exist in one place.</p>
-        <p className="text-stone-400 text-sm">Preserve the handwritten cards that hold your family&apos;s history.</p>
+        <h1 className="text-3xl font-serif text-stone-800 mb-3">Don&apos;t let the handwriting fade.</h1>
+        <p className="text-stone-400 text-sm leading-relaxed">The recipes written in her handwriting deserve to last forever.</p>
       </div>
 
       <form onSubmit={handleSignup} className="space-y-4">
