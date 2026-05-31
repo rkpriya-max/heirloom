@@ -82,14 +82,12 @@ export default function FamilyPage() {
   const [copied, setCopied] = useState(false);
 
   const handleInvite = async () => {
-    if (!inviteEmail.trim()) return;
     setInviting(true);
     const supabase = createClient();
     const { data } = await supabase
       .from("family_invites")
       .insert({
         family_id: id,
-        invited_email: inviteEmail.trim(),
         invited_by: currentUser?.id,
       })
       .select("token")
@@ -279,38 +277,22 @@ export default function FamilyPage() {
 
       {/* ── INVITE MODAL ── */}
       {showInvite && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => { setShowInvite(false); setInvited(false); setInviteEmail(""); }}>
-          <div className="bg-white w-full max-w-lg mx-auto rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => { setShowInvite(false); setInvited(false); setCopied(false); }}>
+          <div className="bg-white w-full max-w-lg mx-auto rounded-t-3xl p-6" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-serif text-stone-800 text-lg mb-1">Invite to {family.name}</h2>
             <p className="text-stone-400 text-sm mb-5">
-              They&apos;ll get access to all shared recipes and can add memories and comments.
+              Share this link. Anyone with it can join your family.
             </p>
             {!invited ? (
-              <>
-                <input
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="Email address"
-                  type="email"
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 mb-3"
-                />
-                <button
-                  onClick={handleInvite}
-                  disabled={!inviteEmail.trim() || inviting}
-                  className="w-full bg-amber-600 text-white py-3.5 rounded-xl font-medium text-sm hover:bg-amber-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {inviting ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</> : "Send invite"}
-                </button>
-              </>
+              <button
+                onClick={handleInvite}
+                disabled={inviting}
+                className="w-full bg-amber-600 text-white py-3.5 rounded-xl font-medium text-sm hover:bg-amber-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {inviting ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : "Generate invite link"}
+              </button>
             ) : (
-              <div className="py-2">
-                <div className="text-center mb-4">
-                  <div className="text-3xl mb-2">🔗</div>
-                  <p className="font-medium text-stone-800">Invite link ready</p>
-                  <p className="text-stone-400 text-sm mt-1">
-                    Send this link to {inviteEmail}. They&apos;ll land on a join page.
-                  </p>
-                </div>
+              <>
                 {inviteLink && (
                   <div className="bg-stone-50 rounded-xl border border-stone-200 p-3 mb-3">
                     <p className="text-xs text-stone-500 font-mono break-all leading-relaxed">{inviteLink}</p>
@@ -324,11 +306,11 @@ export default function FamilyPage() {
                   {copied ? "✓ Copied!" : "Copy link"}
                 </button>
                 <button
-                  onClick={() => { setShowInvite(false); setInvited(false); setInviteEmail(""); setCopied(false); }}
+                  onClick={() => { setShowInvite(false); setInvited(false); setCopied(false); }}
                   className="w-full text-stone-400 text-sm py-2">
                   Done
                 </button>
-              </div>
+              </>
             )}
           </div>
         </div>
