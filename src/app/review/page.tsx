@@ -175,7 +175,7 @@ export default function ReviewPage() {
         .single();
 
       if (recipeError || !recipe) {
-        setError("Failed to save. Check your connection and try again.");
+        setError(`Save failed: ${recipeError?.message ?? "no recipe returned"}`);
         setSaving(false);
         return;
       }
