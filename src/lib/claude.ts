@@ -135,6 +135,87 @@ export async function digitizeRecipes(
   );
 }
 
+const TEXT_PROMPT = `You are preserving a family recipe that has been shared as text — typed, pasted from a message, or transcribed from speech. Structure it carefully.
+
+STEP 1: Count how many distinct recipes are present.
+- A distinct recipe has its own title and its own ingredient list.
+- Sub-components (e.g. "For the sauce:", "Dough:") are ONE recipe with sections.
+
+STEP 2: Return a JSON object with this structure:
+
+{
+  "recipes": [
+    {
+      "title": { "value": "...", "confidence": 0.0-1.0 },
+      "ingredients": {
+        "value": [
+          { "section": "optional section header or null", "items": ["ingredient 1", "ingredient 2"] }
+        ],
+        "confidence": 0.0-1.0
+      },
+      "steps": { "value": ["step 1", "step 2"], "confidence": 0.0-1.0 },
+      "yield": { "value": "...", "confidence": 0.0-1.0 },
+      "cook_time": { "value": "...", "confidence": 0.0-1.0 },
+      "notes": { "value": "...", "confidence": 0.0-1.0 }
+    }
+  ],
+  "raw_transcription": "the original text as provided"
+}
+
+Rules:
+- Preserve exact measurements and original phrasing. Do not standardize or translate.
+- If quantities are vague ("a handful", "cook until fragrant"), keep them exactly as said — they are part of the family character.
+- Confidence < 0.85 = flag for human review.
+- Return ONLY valid JSON. No markdown fences.`;
+
+export async function extractRecipeFromText(text: string): Promise<ExtractedRecipe[]> {
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const response = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 4096,
+    messages: [
+      {
+        role: "user",
+        content: `${TEXT_PROMPT}\n\nRecipe text to extract:\n\n${text}`,
+      },
+    ],
+  });
+
+  const raw = response.content[0].type === "text" ? response.content[0].text : "";
+  const stripped = raw.replace(/^```(?:json)?\s*/m, "").replace(/\s*```\s*$/m, "").trim();
+  const jsonStart = stripped.indexOf("{");
+  const jsonEnd = stripped.lastIndexOf("}");
+  if (jsonStart === -1 || jsonEnd === -1) throw new Error(`No JSON found in response: ${raw.slice(0, 200)}`);
+  const jsonText = stripped.slice(jsonStart, jsonEnd + 1);
+  const parsed = JSON.parse(jsonText);
+
+  const rawRecipes = Array.isArray(parsed.recipes) ? parsed.recipes : [parsed];
+  const rawTranscription = parsed.raw_transcription ?? text;
+
+  return rawRecipes.map(
+    (r: {
+      title: { value: string; confidence: number };
+      ingredients: { value: unknown; confidence: number };
+      steps: { value: string[]; confidence: number };
+      yield: { value: string; confidence: number };
+      cook_time: { value: string; confidence: number };
+      notes: { value: string; confidence: number };
+    }): ExtractedRecipe => ({
+      title: markField<string>(r.title),
+      ingredients: {
+        value: normalizeIngredients(r.ingredients?.value),
+        confidence: r.ingredients?.confidence ?? 1,
+        needs_review: (r.ingredients?.confidence ?? 1) < 0.85,
+      },
+      steps: markField<string[]>(r.steps ?? { value: [], confidence: 1 }),
+      yield: markField<string>(r.yield ?? { value: "", confidence: 1 }),
+      cook_time: markField<string>(r.cook_time ?? { value: "", confidence: 1 }),
+      notes: markField<string>(r.notes ?? { value: "", confidence: 1 }),
+      raw_transcription: rawTranscription,
+    })
+  );
+}
+
 export function countReviewFlags(recipe: ExtractedRecipe): number {
   return [recipe.title, recipe.ingredients, recipe.steps, recipe.yield, recipe.cook_time, recipe.notes]
     .filter((f) => f.needs_review).length;
