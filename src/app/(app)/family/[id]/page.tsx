@@ -38,6 +38,7 @@ export default function FamilyPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [invited, setInvited] = useState(false);
+  const [inviteError, setInviteError] = useState("");
   const [sharing, setSharing] = useState<string | null>(null);
   const [sharedIds, setSharedIds] = useState<Set<string>>(new Set());
 
@@ -94,7 +95,7 @@ export default function FamilyPage() {
       .select("token")
       .single();
     if (error || !data?.token) {
-      console.error("Invite error:", error?.message);
+      setInviteError(error?.message ?? "Failed to generate link");
       setInviting(false);
       return;
     }
@@ -312,13 +313,16 @@ export default function FamilyPage() {
               Share this link. Anyone with it can join your family.
             </p>
             {!invited ? (
-              <button
-                onClick={handleInvite}
-                disabled={inviting}
-                className="w-full bg-amber-600 text-white py-3.5 rounded-xl font-medium text-sm hover:bg-amber-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {inviting ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : "Generate invite link"}
-              </button>
+              <>
+                <button
+                  onClick={handleInvite}
+                  disabled={inviting}
+                  className="w-full bg-amber-600 text-white py-3.5 rounded-xl font-medium text-sm hover:bg-amber-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {inviting ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : "Generate invite link"}
+                </button>
+                {inviteError && <p className="text-red-500 text-sm mt-2 text-center">{inviteError}</p>}
+              </>
             ) : (
               <>
                 {inviteLink && (
