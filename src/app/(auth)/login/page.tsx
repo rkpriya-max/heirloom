@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -8,10 +8,17 @@ import { createClient } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [next, setNext] = useState("/home");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const n = params.get("next");
+    if (n) setNext(n);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +32,7 @@ export default function LoginPage() {
       setError("Invalid email or password.");
       setLoading(false);
     } else {
-      router.push("/home");
+      router.push(next);
       router.refresh();
     }
   };
@@ -74,7 +81,9 @@ export default function LoginPage() {
 
       <p className="text-center text-stone-400 text-sm mt-6">
         No account yet?{" "}
-        <Link href="/signup" className="text-amber-600 font-medium">Create one</Link>
+        <Link href={`/signup${next !== "/home" ? `?next=${encodeURIComponent(next)}` : ""}`} className="text-amber-600 font-medium">
+          Create one
+        </Link>
       </p>
     </div>
   );

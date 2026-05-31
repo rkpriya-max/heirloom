@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -8,11 +8,18 @@ import { createClient } from "@/lib/supabase";
 
 export default function SignupPage() {
   const router = useRouter();
+  const [next, setNext] = useState("/home");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const n = params.get("next");
+    if (n) setNext(n);
+  }, []);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +37,7 @@ export default function SignupPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push("/home");
+      router.push(next);
       router.refresh();
     }
   };
@@ -90,7 +97,9 @@ export default function SignupPage() {
 
       <p className="text-center text-stone-400 text-sm mt-6">
         Already have an account?{" "}
-        <Link href="/login" className="text-amber-600 font-medium">Sign in</Link>
+        <Link href={`/login${next !== "/home" ? `?next=${encodeURIComponent(next)}` : ""}`} className="text-amber-600 font-medium">
+          Sign in
+        </Link>
       </p>
     </div>
   );

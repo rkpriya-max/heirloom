@@ -78,17 +78,35 @@ export default function FamilyPage() {
     load();
   }, [id, router]);
 
+  const [inviteLink, setInviteLink] = useState("");
+  const [copied, setCopied] = useState(false);
+
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
     setInviting(true);
     const supabase = createClient();
-    await supabase.from("family_invites").insert({
-      family_id: id,
-      invited_email: inviteEmail.trim(),
-      invited_by: currentUser?.id,
-    });
+    const { data } = await supabase
+      .from("family_invites")
+      .insert({
+        family_id: id,
+        invited_email: inviteEmail.trim(),
+        invited_by: currentUser?.id,
+      })
+      .select("token")
+      .single();
+    const link = data?.token
+      ? `${window.location.origin}/join/${data.token}`
+      : "";
+    setInviteLink(link);
     setInviting(false);
     setInvited(true);
+  };
+
+  const handleCopyLink = () => {
+    if (!inviteLink) return;
+    navigator.clipboard.writeText(inviteLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShare = async (recipeId: string) => {
@@ -285,13 +303,29 @@ export default function FamilyPage() {
                 </button>
               </>
             ) : (
-              <div className="text-center py-4">
-                <div className="text-3xl mb-2">✉️</div>
-                <p className="font-medium text-stone-800">Invite recorded for {inviteEmail}</p>
-                <p className="text-stone-400 text-sm mt-1">Share the family link with them to join.</p>
+              <div className="py-2">
+                <div className="text-center mb-4">
+                  <div className="text-3xl mb-2">🔗</div>
+                  <p className="font-medium text-stone-800">Invite link ready</p>
+                  <p className="text-stone-400 text-sm mt-1">
+                    Send this link to {inviteEmail}. They&apos;ll land on a join page.
+                  </p>
+                </div>
+                {inviteLink && (
+                  <div className="bg-stone-50 rounded-xl border border-stone-200 p-3 mb-3">
+                    <p className="text-xs text-stone-500 font-mono break-all leading-relaxed">{inviteLink}</p>
+                  </div>
+                )}
                 <button
-                  onClick={() => { setShowInvite(false); setInvited(false); setInviteEmail(""); }}
-                  className="mt-4 text-amber-600 text-sm font-medium">
+                  onClick={handleCopyLink}
+                  className={`w-full py-3.5 rounded-xl font-medium text-sm transition-colors mb-2
+                    ${copied ? "bg-green-100 text-green-700" : "bg-amber-600 text-white hover:bg-amber-700"}`}
+                >
+                  {copied ? "✓ Copied!" : "Copy link"}
+                </button>
+                <button
+                  onClick={() => { setShowInvite(false); setInvited(false); setInviteEmail(""); setCopied(false); }}
+                  className="w-full text-stone-400 text-sm py-2">
                   Done
                 </button>
               </div>
