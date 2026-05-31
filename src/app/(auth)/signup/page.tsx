@@ -95,7 +95,7 @@ export default function SignupPage() {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Pri"
+            placeholder="Your name"
             required
             className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400"
           />
