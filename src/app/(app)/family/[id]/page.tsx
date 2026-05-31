@@ -277,8 +277,8 @@ export default function FamilyPage() {
 
       {/* ── INVITE MODAL ── */}
       {showInvite && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => { setShowInvite(false); setInvited(false); setCopied(false); }}>
-          <div className="bg-white w-full max-w-lg mx-auto rounded-t-3xl p-6 pb-24" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4" onClick={() => { setShowInvite(false); setInvited(false); setCopied(false); }}>
+          <div className="bg-white w-full max-w-sm rounded-2xl p-6" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-serif text-stone-800 text-lg mb-1">Invite to {family.name}</h2>
             <p className="text-stone-400 text-sm mb-5">
               Share this link. Anyone with it can join your family.
@@ -318,8 +318,8 @@ export default function FamilyPage() {
 
       {/* ── SHARE RECIPE MODAL ── */}
       {showShare && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => setShowShare(false)}>
-          <div className="bg-white w-full max-w-lg mx-auto rounded-t-3xl p-6 max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4" onClick={() => setShowShare(false)}>
+          <div className="bg-white w-full max-w-sm rounded-2xl p-6 max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-serif text-stone-800 text-lg mb-1 shrink-0">Share a recipe</h2>
             <p className="text-stone-400 text-sm mb-4 shrink-0">Choose a recipe from your collection to share with {family.name}.</p>
             <div className="overflow-y-auto space-y-2 flex-1">
