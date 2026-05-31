@@ -8,32 +8,36 @@ const STORAGE_KEY = "heirloom_onboarded";
 const screens = [
   {
     bg: "bg-stone-50",
-    visual: "📜",
+    visual: "📸",
     visualBg: "bg-amber-100",
-    headline: "The best recipes aren't online.",
-    body: "They're in her handwriting. Spoken in the kitchen. Passed down at the dinner table. Heirloom is where they live.",
+    step: "Step 1",
+    headline: "Preserve any recipe.",
+    body: "Photograph a handwritten card, record a voice, paste from a message, or drop a link. Heirloom structures it and keeps the original exactly as it was.",
   },
   {
     bg: "bg-amber-50",
-    visual: "📸",
+    visual: "🎙️",
     visualBg: "bg-white",
-    headline: "Photograph it. Speak it. We'll structure it.",
-    body: "Point your phone at a recipe card, record a voice note, or paste something from a message. Heirloom turns it into a recipe you can actually cook from — and keeps the original forever.",
+    step: "Step 2",
+    headline: "Capture who made it.",
+    body: "Add a voice recording. Hear her describe the dish the way she always did — 'cook until it smells right.' Their words stay with the recipe, forever.",
   },
   {
     bg: "bg-stone-800",
     visual: "🏡",
     visualBg: "bg-stone-700",
-    headline: "Your family's collection, always within reach.",
-    body: "Everyone adds. Everyone cooks. Share your archive with family so the recipes that matter most are always at someone's fingertips.",
+    step: "Step 3",
+    headline: "Share with your family.",
+    body: "Invite family to your archive. Everyone adds. Everyone cooks. The recipes that matter most are always within reach of the people who love them.",
     dark: true,
   },
   {
     bg: "bg-amber-900",
     visual: "🍽️",
     visualBg: "bg-amber-800",
-    headline: "Every recipe is an invitation.",
-    body: "Plan gatherings around your archive. Build menus from recipes that matter. Bring family and community to the same table — the way food was always meant to be shared.",
+    step: "Step 4",
+    headline: "Gather around it.",
+    body: "Plan dinners and events from your collection. Build menus, invite your community, and bring everyone to the same table. Every recipe is an invitation.",
     dark: true,
   },
 ];
@@ -53,11 +57,8 @@ export default function Onboarding({ onDone }: OnboardingProps) {
   };
 
   const next = () => {
-    if (step < screens.length - 1) {
-      setStep((s) => s + 1);
-    } else {
-      finish();
-    }
+    if (step < screens.length - 1) setStep((s) => s + 1);
+    else finish();
   };
 
   const screen = screens[step];
@@ -65,10 +66,9 @@ export default function Onboarding({ onDone }: OnboardingProps) {
   const isDark = screen.dark;
 
   return (
-    <div
-      className={`fixed inset-0 z-50 flex flex-col transition-opacity duration-300 ${screen.bg} ${exiting ? "opacity-0" : "opacity-100"}`}
-    >
-      {/* Top bar — back + skip */}
+    <div className={`fixed inset-0 z-50 flex flex-col transition-opacity duration-300 ${screen.bg} ${exiting ? "opacity-0" : "opacity-100"}`}>
+
+      {/* Top bar */}
       <div className="flex justify-between items-center px-6 pt-6">
         {step > 0 ? (
           <button
@@ -90,36 +90,35 @@ export default function Onboarding({ onDone }: OnboardingProps) {
 
       {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
+
         {/* Visual */}
-        <div
-          className={`w-28 h-28 rounded-3xl flex items-center justify-center text-6xl mb-10 shadow-sm ${screen.visualBg}`}
-        >
+        <div className={`w-24 h-24 rounded-3xl flex items-center justify-center text-5xl mb-8 shadow-sm ${screen.visualBg}`}>
           {screen.visual}
         </div>
 
+        {/* Step label */}
+        <p className={`text-xs font-semibold uppercase tracking-widest mb-3 ${isDark ? "text-amber-400" : "text-amber-600"}`}>
+          {screen.step} of 4
+        </p>
+
         {/* Headline */}
-        <h1
-          className={`font-serif text-3xl leading-snug mb-5 ${isDark ? "text-white" : "text-stone-800"}`}
-        >
+        <h1 className={`font-serif text-3xl leading-snug mb-4 ${isDark ? "text-white" : "text-stone-800"}`}>
           {screen.headline}
         </h1>
 
         {/* Body */}
-        <p
-          className={`text-base leading-relaxed max-w-xs ${isDark ? "text-stone-300" : "text-stone-500"}`}
-        >
+        <p className={`text-base leading-relaxed max-w-xs ${isDark ? "text-stone-300" : "text-stone-500"}`}>
           {screen.body}
         </p>
       </div>
 
       {/* Footer */}
       <div className="px-8 pb-12 space-y-6">
-        {/* CTA button */}
         <button
           onClick={next}
           className={`w-full py-4 rounded-2xl font-medium text-base flex items-center justify-center gap-2 transition-colors ${
             isLast
-              ? "bg-amber-600 hover:bg-amber-500 text-white"
+              ? "bg-amber-500 hover:bg-amber-400 text-white"
               : isDark
               ? "bg-white hover:bg-stone-100 text-stone-800"
               : "bg-stone-800 hover:bg-stone-700 text-white"
