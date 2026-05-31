@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft, UserPlus, ChevronRight, Crown, Loader2, BookOpen, CheckCircle } from "lucide-react";
+import { ChevronLeft, UserPlus, ChevronRight, Crown, Loader2, BookOpen, CheckCircle, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
 type Tab = "recipes" | "members";
@@ -82,6 +82,11 @@ export default function FamilyPage() {
   const [inviteLink, setInviteLink] = useState("");
   const [copied, setCopied] = useState(false);
 
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [saving, setSaving] = useState(false);
+
   const handleInvite = async () => {
     setInviting(true);
     const supabase = createClient();
@@ -158,6 +163,21 @@ export default function FamilyPage() {
     setSharing(null);
   };
 
+  const handleSaveFamily = async () => {
+    if (!editName.trim()) return;
+    setSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.from("families").update({
+      name: editName.trim(),
+      description: editDesc.trim() || null,
+    }).eq("id", id);
+    if (!error) {
+      setFamily((prev) => prev ? { ...prev, name: editName.trim(), description: editDesc.trim() || null } : prev);
+      setEditing(false);
+    }
+    setSaving(false);
+  };
+
   const nameFor = (userId: string) =>
     currentUser?.id === userId ? currentUser.name : "Family member";
 
@@ -194,10 +214,49 @@ export default function FamilyPage() {
         </div>
 
         <div className="mb-3">
-          <h1 className="text-xl font-serif text-stone-800">{family.name}</h1>
-          <p className="text-stone-400 text-xs">
-            {members.length} member{members.length !== 1 ? "s" : ""} · {sharedRecipes.length} shared recipe{sharedRecipes.length !== 1 ? "s" : ""}
-          </p>
+          {editing ? (
+            <div className="space-y-2 mt-1">
+              <input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="w-full font-serif text-xl text-stone-800 border-b-2 border-amber-400 bg-transparent focus:outline-none"
+                autoFocus
+              />
+              <input
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+                placeholder="Description (optional)"
+                className="w-full text-xs text-stone-500 border-b border-stone-200 bg-transparent focus:outline-none placeholder:text-stone-300"
+              />
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={handleSaveFamily}
+                  disabled={saving || !editName.trim()}
+                  className="text-xs bg-amber-600 text-white px-3 py-1.5 rounded-lg font-medium disabled:opacity-50 flex items-center gap-1"
+                >
+                  {saving ? <><Loader2 className="w-3 h-3 animate-spin" /> Saving...</> : "Save"}
+                </button>
+                <button onClick={() => setEditing(false)} className="text-xs text-stone-400 px-2 py-1.5">Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-serif text-stone-800">{family.name}</h1>
+              {myRole === "admin" && (
+                <button
+                  onClick={() => { setEditName(family.name); setEditDesc(family.description ?? ""); setEditing(true); }}
+                  className="text-stone-300 hover:text-amber-500 transition-colors mt-0.5"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          )}
+          {!editing && (
+            <p className="text-stone-400 text-xs mt-0.5">
+              {members.length} member{members.length !== 1 ? "s" : ""} · {sharedRecipes.length} shared recipe{sharedRecipes.length !== 1 ? "s" : ""}
+            </p>
+          )}
         </div>
 
         {/* Member avatars */}

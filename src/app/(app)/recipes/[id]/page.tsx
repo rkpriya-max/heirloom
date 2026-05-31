@@ -83,9 +83,11 @@ export default function RecipeDetailPage() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const { toast, show: showToast, clear: clearToast } = useToast();
 
-  const handleCoverUpload = async (file: File) => {
+  const handleCoverUpload = async (file: File, inputEl?: HTMLInputElement) => {
     if (!recipe) return;
     setUploadingCover(true);
+    // Reset input immediately so the same file can be re-selected next time
+    if (inputEl) inputEl.value = "";
     const supabase = createClient();
 
     // Compress
@@ -106,14 +108,23 @@ export default function RecipeDetailPage() {
       img.src = url;
     });
 
-    const { data: upload } = await supabase.storage
+    const { data: upload, error: uploadError } = await supabase.storage
       .from("recipe-media")
       .upload(`recipes/${recipe.id}/cover.jpg`, compressed, { upsert: true });
 
+    if (uploadError) {
+      showToast("Upload failed — try again");
+      setUploadingCover(false);
+      return;
+    }
+
     if (upload) {
+      // Bust the CDN cache by appending a timestamp to the URL
       const { data: urlData } = supabase.storage.from("recipe-media").getPublicUrl(upload.path);
+      const freshUrl = `${urlData.publicUrl}?t=${Date.now()}`;
       await supabase.from("recipes").update({ cover_image_url: urlData.publicUrl }).eq("id", recipe.id);
-      setRecipe((prev) => prev ? { ...prev, cover_image_url: urlData.publicUrl } : prev);
+      setRecipe((prev) => prev ? { ...prev, cover_image_url: freshUrl } : prev);
+      showToast("Cover photo updated");
     }
     setUploadingCover(false);
   };
@@ -266,7 +277,7 @@ export default function RecipeDetailPage() {
             <img src={recipe.cover_image_url} alt={recipe.title} className="w-full h-56 object-cover" />
             <label className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-3 py-1.5 rounded-full cursor-pointer hover:bg-black/70 transition-colors flex items-center gap-1.5">
               {uploadingCover ? <><span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Uploading...</> : "✏️ Change photo"}
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f); }} />
+              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f, e.target); }} />
             </label>
           </div>
         ) : (
@@ -274,7 +285,7 @@ export default function RecipeDetailPage() {
             {uploadingCover
               ? <><span className="w-5 h-5 border-2 border-amber-400/40 border-t-amber-600 rounded-full animate-spin" /><span className="text-stone-400 text-xs">Uploading...</span></>
               : <><span className="text-3xl">📷</span><span className="text-stone-400 text-sm">Add a cover photo</span></>}
-            <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f); }} />
+            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f, e.target); }} />
           </label>
         )}
       </div>
