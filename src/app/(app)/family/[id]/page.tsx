@@ -100,11 +100,36 @@ export default function FamilyPage() {
     setInvited(true);
   };
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     if (!inviteLink) return;
-    navigator.clipboard.writeText(inviteLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    // Use native share sheet on mobile if available
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Join ${family?.name} on Heirloom`, url: inviteLink });
+        return;
+      } catch { /* user cancelled share */ return; }
+    }
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(inviteLink);
+      } else {
+        // Fallback for older/restricted browsers
+        const el = document.createElement("textarea");
+        el.value = inviteLink;
+        el.style.position = "fixed";
+        el.style.opacity = "0";
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Last resort: show the link so user can copy manually
+      setCopied(false);
+    }
   };
 
   const handleShare = async (recipeId: string) => {
@@ -303,7 +328,7 @@ export default function FamilyPage() {
                   className={`w-full py-3.5 rounded-xl font-medium text-sm transition-colors mb-2
                     ${copied ? "bg-green-100 text-green-700" : "bg-amber-600 text-white hover:bg-amber-700"}`}
                 >
-                  {copied ? "✓ Copied!" : "Copy link"}
+                  {copied ? "✓ Copied!" : (typeof navigator !== "undefined" && navigator.share ? "Share link" : "Copy link")}
                 </button>
                 <button
                   onClick={() => { setShowInvite(false); setInvited(false); setCopied(false); }}
