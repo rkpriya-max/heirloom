@@ -214,7 +214,7 @@ export default function UploadPage() {
             onDrop={onDrop}
             onClick={() => document.getElementById("file-input")?.click()}
           >
-            <input id="file-input" type="file" accept="image/*" className="hidden"
+            <input id="file-input" type="file" accept="image/*" capture="environment" className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
             {preview ? (
               <div className="relative">

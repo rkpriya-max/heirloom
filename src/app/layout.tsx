@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Lora } from "next/font/google";
 import "./globals.css";
 
@@ -20,7 +20,13 @@ const lora = Lora({
 export const metadata: Metadata = {
   title: "Heirloom — Preserve Your Family Recipes",
   description:
-    "AI-powered digitization for handwritten family recipes. Preserve the handwriting. Share with family. Print a cookbook.",
+    "Preserve the handwritten recipes that hold your family's history. Share with family. Keep them forever.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover", // respects iPhone notch and home bar
 };
 
 export default function RootLayout({
