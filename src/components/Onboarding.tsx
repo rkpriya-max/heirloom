@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowRight, X } from "lucide-react";
+import { ArrowRight, ArrowLeft, X } from "lucide-react";
 
 const STORAGE_KEY = "heirloom_onboarded";
 
@@ -60,17 +60,25 @@ export default function Onboarding({ onDone }: OnboardingProps) {
     <div
       className={`fixed inset-0 z-50 flex flex-col transition-opacity duration-300 ${screen.bg} ${exiting ? "opacity-0" : "opacity-100"}`}
     >
-      {/* Skip */}
-      {!isLast && (
-        <div className="flex justify-end px-6 pt-6">
+      {/* Top bar — back + skip */}
+      <div className="flex justify-between items-center px-6 pt-6">
+        {step > 0 ? (
+          <button
+            onClick={() => setStep((s) => s - 1)}
+            className={`flex items-center gap-1 text-sm font-medium transition-colors ${isDark ? "text-stone-400 hover:text-stone-200" : "text-stone-400 hover:text-stone-600"}`}
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Back
+          </button>
+        ) : <div />}
+        {!isLast && (
           <button
             onClick={finish}
             className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${isDark ? "text-stone-400 hover:text-stone-200" : "text-stone-400 hover:text-stone-600"}`}
           >
             <X className="w-3.5 h-3.5" /> Skip
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
