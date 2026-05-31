@@ -102,7 +102,15 @@ export default function JoinPage() {
       .eq("id", invite.id);
 
     setDone(true);
-    setTimeout(() => router.push(`/family/${invite.family_id}`), 1500);
+    const familyUrl = `/family/${invite.family_id}`;
+    const onboarded = localStorage.getItem("heirloom_onboarded");
+    if (!onboarded) {
+      // New user — show onboarding first, then take them to the family
+      localStorage.setItem("heirloom_post_onboard", familyUrl);
+      setTimeout(() => router.push("/home"), 1500);
+    } else {
+      setTimeout(() => router.push(familyUrl), 1500);
+    }
   };
 
   // ── Loading ──

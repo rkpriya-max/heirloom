@@ -30,6 +30,15 @@ function getGreeting() {
 export default function HomePage() {
   const router = useRouter();
   const { show: showOnboarding, dismiss: dismissOnboarding } = useOnboarding();
+
+  const handleOnboardingDone = () => {
+    dismissOnboarding();
+    const redirect = localStorage.getItem("heirloom_post_onboard");
+    if (redirect) {
+      localStorage.removeItem("heirloom_post_onboard");
+      router.push(redirect);
+    }
+  };
   const [profile, setProfile] = useState<Profile | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +86,7 @@ export default function HomePage() {
 
   return (
     <>
-      {showOnboarding && <Onboarding onDone={dismissOnboarding} />}
+      {showOnboarding && <Onboarding onDone={handleOnboardingDone} />}
     <main className="max-w-lg mx-auto px-4 pt-10 space-y-8">
 
       {/* Header */}
