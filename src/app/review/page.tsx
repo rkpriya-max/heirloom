@@ -170,7 +170,6 @@ export default function ReviewPage() {
           yield: e.yield.trim() || null,
           cook_time: e.cook_time.trim() || null,
           notes: e.notes.trim() || null,
-          original_image_base64: imageBase64,
         })
         .select("id")
         .single();
