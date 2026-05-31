@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, Camera, Loader2 } from "lucide-react";
+import BottomNav from "@/components/BottomNav";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -107,7 +108,7 @@ export default function UploadPage() {
   };
 
   return (
-    <main className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-6">
+    <><main className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-6 pb-24">
       <div className="w-full max-w-lg">
         {/* Header */}
         <div className="text-center mb-10">
@@ -202,6 +203,6 @@ export default function UploadPage() {
           </p>
         )}
       </div>
-    </main>
+    </main><BottomNav /></>
   );
 }

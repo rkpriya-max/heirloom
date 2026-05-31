@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle, ChevronLeft, Save, Layers, Loader2 } from "lucide-react";
 import type { ExtractedRecipe } from "@/lib/claude";
 import { createClient } from "@/lib/supabase";
+import BottomNav from "@/components/BottomNav";
 
 function ConfidenceBadge({ confidence, needsReview }: { confidence: number; needsReview: boolean }) {
   if (needsReview) {
@@ -230,7 +231,7 @@ export default function ReviewPage() {
     : 0;
 
   return (
-    <main className="min-h-screen bg-stone-50">
+    <><main className="min-h-screen bg-stone-50 pb-20">
       <div className="sticky top-0 bg-white border-b border-stone-100 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <a href="/home" className="flex items-center gap-1 text-stone-500 text-sm hover:text-stone-700">
@@ -333,6 +334,6 @@ export default function ReviewPage() {
             : "Save recipe"}
         </button>
       </div>
-    </main>
+    </main><BottomNav /></>
   );
 }
