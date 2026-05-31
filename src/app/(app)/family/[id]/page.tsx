@@ -84,17 +84,21 @@ export default function FamilyPage() {
   const handleInvite = async () => {
     setInviting(true);
     const supabase = createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("family_invites")
       .insert({
         family_id: id,
+        invited_email: null,
         invited_by: currentUser?.id,
       })
       .select("token")
       .single();
-    const link = data?.token
-      ? `${window.location.origin}/join/${data.token}`
-      : "";
+    if (error || !data?.token) {
+      console.error("Invite error:", error?.message);
+      setInviting(false);
+      return;
+    }
+    const link = `${window.location.origin}/join/${data.token}`;
     setInviteLink(link);
     setInviting(false);
     setInvited(true);
@@ -319,7 +323,13 @@ export default function FamilyPage() {
               <>
                 {inviteLink && (
                   <div className="bg-stone-50 rounded-xl border border-stone-200 p-3 mb-3">
-                    <p className="text-xs text-stone-500 font-mono break-all leading-relaxed">{inviteLink}</p>
+                    <p className="text-[10px] text-stone-400 mb-1">Invite link — tap to select and copy manually:</p>
+                    <input
+                      readOnly
+                      value={inviteLink}
+                      onFocus={(e) => e.target.select()}
+                      className="w-full text-xs text-stone-600 font-mono bg-transparent focus:outline-none break-all"
+                    />
                   </div>
                 )}
                 <button
