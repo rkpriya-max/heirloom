@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { CHAT_SUGGESTIONS } from "@/lib/mock-data";
+import { Toast, useToast } from "@/components/Toast";
 
 type Tab = "recipe" | "chat" | "memories" | "versions";
 interface ChatMessage { role: "user" | "assistant"; text: string }
@@ -75,6 +76,7 @@ export default function RecipeDetailPage() {
   const [newComment, setNewComment] = useState("");
   const [savingComment, setSavingComment] = useState(false);
   const [savingMemory, setSavingMemory] = useState(false);
+  const { toast, show: showToast, clear: clearToast } = useToast();
 
   useEffect(() => {
     const load = async () => {
@@ -168,7 +170,7 @@ export default function RecipeDetailPage() {
       .insert({ recipe_id: id, user_id: currentUser.id, content: newComment.trim() })
       .select("id, content, created_at, user_id")
       .single();
-    if (data) { setComments((prev) => [...prev, data as Comment]); setNewComment(""); }
+    if (data) { setComments((prev) => [...prev, data as Comment]); setNewComment(""); showToast("Comment added"); }
     setSavingComment(false);
   };
 
@@ -181,7 +183,7 @@ export default function RecipeDetailPage() {
       .insert({ recipe_id: id, user_id: currentUser.id, content: newMemory.trim(), tagged_people: [] })
       .select("id, content, created_at, user_id, tagged_people")
       .single();
-    if (data) { setMemories((prev) => [...prev, data as Memory]); setNewMemory(""); }
+    if (data) { setMemories((prev) => [...prev, data as Memory]); setNewMemory(""); showToast("Memory saved"); }
     setSavingMemory(false);
   };
 
@@ -194,6 +196,7 @@ export default function RecipeDetailPage() {
   const initial = (name: string) => name[0]?.toUpperCase() ?? "?";
 
   return (
+    <>
     <main className="max-w-lg mx-auto min-h-screen bg-stone-50">
       <div className="sticky top-0 bg-white/90 backdrop-blur-sm border-b border-stone-100 z-10 px-4 py-3">
         <div className="flex items-center justify-between mb-3">
@@ -437,5 +440,7 @@ export default function RecipeDetailPage() {
         )}
       </div>
     </main>
+    {toast && <Toast message={toast} onDone={clearToast} />}
+    </>
   );
 }

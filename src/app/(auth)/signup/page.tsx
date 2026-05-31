@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
 export default function SignupPage() {
@@ -14,6 +14,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [checkEmail, setCheckEmail] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -27,7 +28,7 @@ export default function SignupPage() {
     setError("");
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { name } },
@@ -36,12 +37,50 @@ export default function SignupPage() {
     if (error) {
       setError(error.message);
       setLoading(false);
-    } else {
-      router.push(next);
-      router.refresh();
+      return;
     }
+
+    // session is null → Supabase sent a confirmation email
+    if (!data.session) {
+      setCheckEmail(true);
+      setLoading(false);
+      return;
+    }
+
+    // session exists → no confirmation needed, go straight in
+    router.push(next);
+    router.refresh();
   };
 
+  // ── Check your email screen ──
+  if (checkEmail) {
+    return (
+      <div className="w-full max-w-sm text-center">
+        <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-6">
+          <Mail className="w-7 h-7 text-amber-600" />
+        </div>
+        <h1 className="text-2xl font-serif text-stone-800 mb-2">Check your email</h1>
+        <p className="text-stone-400 text-sm leading-relaxed mb-2">
+          We sent a confirmation link to
+        </p>
+        <p className="text-stone-700 font-medium text-sm mb-6">{email}</p>
+        <p className="text-stone-400 text-xs leading-relaxed mb-8">
+          Click the link in that email to activate your account. Then come back and sign in.
+        </p>
+        <Link
+          href={`/login${next !== "/home" ? `?next=${encodeURIComponent(next)}` : ""}`}
+          className="block w-full bg-amber-600 text-white py-3.5 rounded-xl font-medium text-sm hover:bg-amber-700 transition-colors"
+        >
+          Go to sign in
+        </Link>
+        <p className="text-stone-300 text-xs mt-4">
+          Didn&apos;t get it? Check your spam folder.
+        </p>
+      </div>
+    );
+  }
+
+  // ── Signup form ──
   return (
     <div className="w-full max-w-sm">
       <div className="text-center mb-8">
@@ -89,7 +128,7 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-amber-600 hover:bg-amber-700 text-white py-3.5 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-amber-600 hover:bg-amber-700 text-white py-3.5 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
         >
           {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating account...</> : "Create account"}
         </button>

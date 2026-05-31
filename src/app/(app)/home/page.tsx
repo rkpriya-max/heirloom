@@ -16,6 +16,19 @@ interface Recipe {
 interface Profile {
   name: string | null;
   email: string | null;
+  created_at: string;
+}
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function isNewUser(createdAt: string) {
+  const diff = Date.now() - new Date(createdAt).getTime();
+  return diff < 1000 * 60 * 5; // created within last 5 minutes
 }
 
 export default function HomePage() {
@@ -23,6 +36,7 @@ export default function HomePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -31,13 +45,16 @@ export default function HomePage() {
       if (!user) { router.push("/login"); return; }
 
       const [{ data: prof }, { data: recs }] = await Promise.all([
-        supabase.from("profiles").select("name, email").eq("id", user.id).single(),
+        supabase.from("profiles").select("name, email, created_at").eq("id", user.id).single(),
         supabase.from("recipes").select("id, title, description, created_at")
           .eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
       ]);
 
       setProfile(prof);
       setRecipes(recs ?? []);
+      if (prof?.created_at && isNewUser(prof.created_at)) {
+        setShowWelcome(true);
+      }
       setLoading(false);
     };
     load();
@@ -50,6 +67,7 @@ export default function HomePage() {
   };
 
   const displayName = profile?.name ?? profile?.email?.split("@")[0] ?? "…";
+  const firstName = displayName.split(" ")[0];
   const initial = displayName[0]?.toUpperCase() ?? "?";
 
   if (loading) {
@@ -66,10 +84,30 @@ export default function HomePage() {
 
   return (
     <main className="max-w-lg mx-auto px-4 pt-10 space-y-8">
+
+      {/* Welcome banner — only for new accounts */}
+      {showWelcome && (
+        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5 relative">
+          <button
+            onClick={() => setShowWelcome(false)}
+            className="absolute top-3 right-4 text-stone-300 hover:text-stone-500 text-lg leading-none"
+          >
+            ×
+          </button>
+          <p className="text-amber-700 font-serif text-lg mb-1">Welcome to Heirloom, {firstName}.</p>
+          <p className="text-amber-600 text-sm leading-relaxed">
+            This is where your family&apos;s recipes live. Start by adding one — scan a handwritten card or type it in.
+          </p>
+          <Link href="/recipes/new" className="inline-block mt-3 text-xs font-semibold text-amber-700 underline underline-offset-2">
+            Add your first recipe →
+          </Link>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-stone-400 text-sm">Good morning</p>
+          <p className="text-stone-400 text-sm">{getGreeting()}</p>
           <h1 className="text-2xl font-serif text-stone-800">{displayName}</h1>
         </div>
         <div className="flex items-center gap-3">
@@ -129,7 +167,7 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* Explore */}
+      {/* Family CTA */}
       <section>
         <Link href="/family" className="bg-stone-100 rounded-2xl p-4 flex items-center gap-4 hover:bg-stone-200 transition-colors">
           <div className="bg-white rounded-xl p-3">
