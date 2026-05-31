@@ -22,6 +22,7 @@ interface MenuRecipe {
 }
 
 interface MyRecipe { id: string; title: string; yield: string | null }
+interface FamilyRecipe { id: string; title: string; yield: string | null; familyName: string }
 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +31,7 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<Event | null>(null);
   const [menu, setMenu] = useState<MenuRecipe[]>([]);
   const [myRecipes, setMyRecipes] = useState<MyRecipe[]>([]);
+  const [familyRecipes, setFamilyRecipes] = useState<FamilyRecipe[]>([]);
   const [showAddRecipe, setShowAddRecipe] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
@@ -44,26 +46,60 @@ export default function EventDetailPage() {
         { data: eventData },
         { data: menuData },
         { data: recipeData },
+        { data: memberData },
       ] = await Promise.all([
         supabase.from("events").select("id, title, description, event_date, notes, host_id").eq("id", id).single(),
         supabase.from("event_recipes").select("recipe_id, sort_order, recipes(id, title, yield, cook_time)").eq("event_id", id).order("sort_order"),
         supabase.from("recipes").select("id, title, yield").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("family_members").select("family_id, families(id, name)").eq("user_id", user.id),
       ]);
 
       if (!eventData) { router.push("/events"); return; }
 
+      const myRecipeList = (recipeData ?? []) as MyRecipe[];
       setEvent(eventData);
       setMenu((menuData ?? []) as MenuRecipe[]);
-      setMyRecipes((recipeData ?? []) as MyRecipe[]);
+      setMyRecipes(myRecipeList);
+
+      // Build family recipes from all families the user belongs to
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const familyMap: Record<string, string> = {};
+      const familyIds: string[] = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (memberData ?? []).forEach((row: any) => {
+        const fam = Array.isArray(row.families) ? row.families[0] : row.families;
+        if (fam?.id) { familyMap[fam.id] = fam.name; familyIds.push(fam.id); }
+      });
+
+      if (familyIds.length > 0) {
+        const { data: frData } = await supabase
+          .from("family_recipes")
+          .select("recipe_id, family_id, recipes(id, title, yield)")
+          .in("family_id", familyIds);
+
+        const myIds = new Set(myRecipeList.map((r) => r.id));
+        const seen = new Set<string>();
+        const fRecipes: FamilyRecipe[] = [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (frData ?? []).forEach((fr: any) => {
+          const r = Array.isArray(fr.recipes) ? fr.recipes[0] : fr.recipes;
+          if (!r || myIds.has(r.id) || seen.has(r.id)) return;
+          seen.add(r.id);
+          fRecipes.push({ id: r.id, title: r.title, yield: r.yield ?? null, familyName: familyMap[fr.family_id] ?? "Family" });
+        });
+        setFamilyRecipes(fRecipes);
+      }
+
       setLoading(false);
     };
     load();
   }, [id, router]);
 
   const menuIds = new Set(menu.map((m) => m.recipe_id));
-  const availableToAdd = myRecipes.filter((r) => !menuIds.has(r.id));
+  const availableOwn = myRecipes.filter((r) => !menuIds.has(r.id));
+  const availableFamily = familyRecipes.filter((r) => !menuIds.has(r.id));
 
-  const handleAddToMenu = async (recipeId: string) => {
+  const handleAddToMenu = async (recipeId: string, title: string, yieldStr: string | null) => {
     setAdding(recipeId);
     const supabase = createClient();
     const { error } = await supabase.from("event_recipes").insert({
@@ -72,14 +108,11 @@ export default function EventDetailPage() {
       sort_order: menu.length,
     });
     if (!error) {
-      const recipe = myRecipes.find((r) => r.id === recipeId);
-      if (recipe) {
-        setMenu((prev) => [...prev, {
-          recipe_id: recipeId,
-          sort_order: prev.length,
-          recipes: [{ id: recipeId, title: recipe.title, yield: recipe.yield, cook_time: null }],
-        }]);
-      }
+      setMenu((prev) => [...prev, {
+        recipe_id: recipeId,
+        sort_order: prev.length,
+        recipes: [{ id: recipeId, title, yield: yieldStr, cook_time: null }],
+      }]);
       setShowAddRecipe(false);
     }
     setAdding(null);
@@ -202,28 +235,66 @@ export default function EventDetailPage() {
       {/* Add recipe modal */}
       {showAddRecipe && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => setShowAddRecipe(false)}>
-          <div className="bg-white w-full max-w-lg mx-auto rounded-t-3xl p-6 max-h-[70vh] flex flex-col"
+          <div className="bg-white w-full max-w-lg mx-auto rounded-t-3xl p-6 max-h-[75vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}>
             <h2 className="font-serif text-stone-800 text-lg mb-4 shrink-0">Add to menu</h2>
-            <div className="space-y-2 overflow-y-auto flex-1">
-              {availableToAdd.length === 0 ? (
-                <p className="text-center text-stone-400 text-sm py-4">
-                  All your recipes are already in this menu.
-                </p>
-              ) : (
-                availableToAdd.map((r) => (
-                  <button key={r.id}
-                    onClick={() => handleAddToMenu(r.id)}
-                    disabled={adding === r.id}
-                    className="w-full flex items-center gap-3 bg-stone-50 rounded-xl px-4 py-3 hover:bg-amber-50 transition-colors text-left disabled:opacity-50">
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-lg shrink-0">🍲</div>
-                    <div className="flex-1">
-                      <p className="font-medium text-stone-800 text-sm">{r.title}</p>
-                      {r.yield && <p className="text-xs text-stone-400">{r.yield}</p>}
+            <div className="overflow-y-auto flex-1 space-y-4">
+
+              {/* My recipes */}
+              {availableOwn.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-400 mb-2">My recipes</p>
+                  <div className="space-y-2">
+                    {availableOwn.map((r) => (
+                      <button key={r.id}
+                        onClick={() => handleAddToMenu(r.id, r.title, r.yield)}
+                        disabled={adding === r.id}
+                        className="w-full flex items-center gap-3 bg-stone-50 rounded-xl px-4 py-3 hover:bg-amber-50 transition-colors text-left disabled:opacity-50">
+                        <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-lg shrink-0">🍲</div>
+                        <div className="flex-1">
+                          <p className="font-medium text-stone-800 text-sm">{r.title}</p>
+                          {r.yield && <p className="text-xs text-stone-400">{r.yield}</p>}
+                        </div>
+                        {adding === r.id && <Loader2 className="w-4 h-4 animate-spin text-stone-400 shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Family recipes grouped by family */}
+              {availableFamily.length > 0 && (
+                <div>
+                  {Array.from(new Set(availableFamily.map((r) => r.familyName))).map((fName) => (
+                    <div key={fName} className="mb-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-amber-600 mb-2">
+                        🏠 {fName}
+                      </p>
+                      <div className="space-y-2">
+                        {availableFamily.filter((r) => r.familyName === fName).map((r) => (
+                          <button key={r.id}
+                            onClick={() => handleAddToMenu(r.id, r.title, r.yield)}
+                            disabled={adding === r.id}
+                            className="w-full flex items-center gap-3 bg-stone-50 rounded-xl px-4 py-3 hover:bg-amber-50 transition-colors text-left disabled:opacity-50">
+                            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-lg shrink-0">🍲</div>
+                            <div className="flex-1">
+                              <p className="font-medium text-stone-800 text-sm">{r.title}</p>
+                              {r.yield && <p className="text-xs text-stone-400">{r.yield}</p>}
+                            </div>
+                            {adding === r.id && <Loader2 className="w-4 h-4 animate-spin text-stone-400 shrink-0" />}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    {adding === r.id && <Loader2 className="w-4 h-4 animate-spin text-stone-400 shrink-0" />}
-                  </button>
-                ))
+                  ))}
+                </div>
+              )}
+
+              {availableOwn.length === 0 && availableFamily.length === 0 && (
+                <div className="text-center py-8 text-stone-400 text-sm">
+                  <p className="mb-1">All recipes are already in this menu.</p>
+                  <Link href="/upload" className="text-amber-600 text-sm">Add a new recipe →</Link>
+                </div>
               )}
             </div>
             <button onClick={() => setShowAddRecipe(false)} className="mt-4 text-stone-400 text-sm shrink-0 text-center w-full">
