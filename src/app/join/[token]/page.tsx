@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase";
 interface InviteData {
   id: string;
   family_id: string;
-  invited_email: string;
+  invited_email: string | null;
   accepted: boolean;
   family_name: string;
   family_description: string | null;
@@ -24,6 +24,7 @@ export default function JoinPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  const [joinError, setJoinError] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -33,39 +34,30 @@ export default function JoinPage() {
       const { data: { user } } = await supabase.auth.getUser();
       setUserId(user?.id ?? null);
 
-      // Load invite + family in two queries (avoids join RLS issues)
-      const { data: inviteRow, error: inviteErr } = await supabase
-        .from("family_invites")
-        .select("id, family_id, invited_email, accepted")
-        .eq("token", token)
+      // Use RPC to get invite + family name (bypasses RLS for unauthenticated users)
+      const { data, error: rpcErr } = await supabase
+        .rpc("get_invite_details", { p_token: token })
         .single();
 
-      if (inviteErr || !inviteRow) {
+      if (rpcErr || !data) {
         setError("This invite link is invalid or has expired.");
         setLoading(false);
         return;
       }
 
-      if (inviteRow.accepted) {
+      if (data.accepted) {
         setError("This invite has already been accepted.");
         setLoading(false);
         return;
       }
 
-      // Load family name separately
-      const { data: familyRow } = await supabase
-        .from("families")
-        .select("name, description")
-        .eq("id", inviteRow.family_id)
-        .single();
-
       setInvite({
-        id: inviteRow.id,
-        family_id: inviteRow.family_id,
-        invited_email: inviteRow.invited_email,
-        accepted: inviteRow.accepted,
-        family_name: familyRow?.name ?? "a family",
-        family_description: familyRow?.description ?? null,
+        id: data.id,
+        family_id: data.family_id,
+        invited_email: data.invited_email ?? null,
+        accepted: data.accepted,
+        family_name: data.family_name ?? "a family",
+        family_description: data.family_description ?? null,
       });
 
       setLoading(false);
@@ -76,6 +68,7 @@ export default function JoinPage() {
   const handleJoin = async () => {
     if (!invite || !userId) return;
     setJoining(true);
+    setJoinError("");
 
     const supabase = createClient();
 
@@ -88,14 +81,20 @@ export default function JoinPage() {
       .single();
 
     if (!existing) {
-      await supabase.from("family_members").insert({
+      const { error: insertErr } = await supabase.from("family_members").insert({
         family_id: invite.family_id,
         user_id: userId,
         role: "member",
       });
+
+      if (insertErr) {
+        setJoinError("Could not join family. " + insertErr.message);
+        setJoining(false);
+        return;
+      }
     }
 
-    // Mark accepted
+    // Mark invite accepted
     await supabase
       .from("family_invites")
       .update({ accepted: true })
@@ -153,22 +152,22 @@ export default function JoinPage() {
           {invite?.family_description && (
             <p className="text-stone-400 text-sm">{invite.family_description}</p>
           )}
-          <p className="text-xs text-stone-300 mt-3">
-            Sent to {invite?.invited_email}
-          </p>
         </div>
 
         {userId ? (
           // Logged in — show join button
-          <button
-            onClick={handleJoin}
-            disabled={joining}
-            className="w-full bg-amber-600 text-white py-4 rounded-xl font-medium text-sm hover:bg-amber-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {joining
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Joining...</>
-              : `Join ${invite?.family_name}`}
-          </button>
+          <>
+            <button
+              onClick={handleJoin}
+              disabled={joining}
+              className="w-full bg-amber-600 text-white py-4 rounded-xl font-medium text-sm hover:bg-amber-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {joining
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Joining...</>
+                : `Join ${invite?.family_name}`}
+            </button>
+            {joinError && <p className="text-red-500 text-sm mt-3">{joinError}</p>}
+          </>
         ) : (
           // Not logged in — show auth options
           <div className="space-y-3">
