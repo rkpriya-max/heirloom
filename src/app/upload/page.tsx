@@ -111,7 +111,7 @@ export default function UploadPage() {
       <div className="w-full max-w-lg">
         {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-serif text-stone-800 mb-2">Heirloom</h1>
+          <a href="/home" className="text-3xl font-serif text-stone-800 mb-2 block hover:text-amber-700 transition-colors">Heirloom</a>
           <p className="text-stone-500 text-sm">
             Photograph a recipe card. We will read the handwriting.
           </p>
