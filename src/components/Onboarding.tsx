@@ -28,6 +28,14 @@ const screens = [
     body: "Share your collection with family. Hear her voice describing it. See her handwriting on the card. Keep the recipe alive long after the card has faded.",
     dark: true,
   },
+  {
+    bg: "bg-amber-900",
+    visual: "🍽️",
+    visualBg: "bg-amber-800",
+    headline: "Every recipe is an invitation.",
+    body: "Plan gatherings around your archive. Build menus from recipes that matter. Bring family and community to the same table — the way food was always meant to be shared.",
+    dark: true,
+  },
 ];
 
 interface OnboardingProps {
