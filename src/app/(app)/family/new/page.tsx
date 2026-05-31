@@ -29,7 +29,7 @@ export default function NewFamilyPage() {
       .single();
 
     if (familyError || !family) {
-      setError("Failed to create family. Try again.");
+      setError(`Failed: ${familyError?.message ?? "no data returned"}`);
       setSaving(false);
       return;
     }
