@@ -186,7 +186,18 @@ export default function UploadPage() {
           body: JSON.stringify(body),
         });
         const data = await res.json();
-        if (!res.ok) { setError(data.error || "Something went wrong."); setLoading(false); return; }
+        if (!res.ok) {
+          if (data.paywall) {
+            // Paywalled site — switch to text tab automatically and pre-fill hint
+            setError(data.error);
+            setTab("text");
+            setPastedText("");
+          } else {
+            setError(data.error || "Something went wrong.");
+          }
+          setLoading(false);
+          return;
+        }
 
         sessionStorage.setItem("heirloom_recipes", JSON.stringify(data.recipes));
         sessionStorage.removeItem("heirloom_image");

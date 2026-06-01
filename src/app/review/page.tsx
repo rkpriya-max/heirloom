@@ -142,6 +142,7 @@ export default function ReviewPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     try {
@@ -153,12 +154,14 @@ export default function ReviewPage() {
       if (!raw) { router.replace("/upload"); return; }
       const parsed: ExtractedRecipe[] = JSON.parse(raw);
       const list = Array.isArray(parsed) ? parsed : [parsed];
+      if (list.length === 0) { router.replace("/upload"); return; }
       setRecipes(list);
       setEditables(list.map(initEditable));
       setImageBase64(img);
       setMediaType(mt);
       setVoiceAudioBase64(voiceAudio);
       setVoiceAudioType(voiceType);
+      setChecking(false);
     } catch (e) {
       console.error("Review page parse error:", e);
       router.replace("/upload");
@@ -267,7 +270,13 @@ export default function ReviewPage() {
     }
   };
 
-  if (recipes.length === 0) return null;
+  if (checking || recipes.length === 0) {
+    return (
+      <main className="min-h-screen bg-stone-50 flex items-center justify-center">
+        <Loader2 className="w-5 h-5 animate-spin text-stone-300" />
+      </main>
+    );
+  }
 
   const multi = recipes.length > 1;
   const active = recipes[activeTab];

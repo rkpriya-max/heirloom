@@ -59,6 +59,15 @@ export async function POST(req: Request) {
       if (!fetched.ok) throw new Error(`Could not fetch that URL (${fetched.status})`);
       const html = await fetched.text();
       content = extractFromHtml(html);
+
+      // If we got very little content the page is likely paywalled, requires login,
+      // or is heavily JavaScript-rendered (e.g. WaPo, NYT, subscription sites).
+      if (content.length < 300) {
+        return NextResponse.json({
+          error: "This page couldn't be read — it may be paywalled or require a login. Copy the recipe text and use the Text tab instead.",
+          paywall: true,
+        }, { status: 422 });
+      }
     }
 
     if (!content) {
