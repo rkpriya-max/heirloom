@@ -49,14 +49,15 @@ export default function UploadPage() {
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
-    recognition.onerror = () => setRecording(false);
-    recognition.onend = () => setRecording(false);
     recognitionRef.current = recognition;
   }, []);
 
   const toggleRecording = async () => {
     const recognition = recognitionRef.current;
-    if (!recognition) return;
+    if (!recognition) {
+      setError("Voice recording isn't supported in this browser. Try Chrome on Android or desktop.");
+      return;
+    }
 
     if (recording) {
       recognition.stop();
@@ -64,6 +65,7 @@ export default function UploadPage() {
       setRecording(false);
     } else {
       setTranscript("");
+      setError(null);
       sessionStorage.removeItem("heirloom_voice_audio");
       sessionStorage.removeItem("heirloom_voice_type");
 
@@ -78,6 +80,20 @@ export default function UploadPage() {
         }
         setTranscript(finalText + interim);
       };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recognition.onerror = (e: any) => {
+        setRecording(false);
+        if (e.error === "not-allowed") {
+          setError("Microphone access was denied. Allow it in your browser settings and try again.");
+        } else if (e.error === "no-speech") {
+          setError("Nothing heard — tap record and speak clearly.");
+        } else {
+          setError(`Recording failed (${e.error}). Try Chrome on Android or desktop.`);
+        }
+      };
+
+      recognition.onend = () => setRecording(false);
 
       // Capture raw audio in parallel with speech recognition
       try {
@@ -100,11 +116,15 @@ export default function UploadPage() {
         mediaRecorder.start();
         mediaRecorderRef.current = mediaRecorder;
       } catch {
-        // Audio capture failed — transcript still works, just no recording saved
+        // Audio capture failed — transcript still works, just no raw recording saved
       }
 
-      recognition.start();
-      setRecording(true);
+      try {
+        recognition.start();
+        setRecording(true);
+      } catch {
+        setError("Could not start recording. Try Chrome on Android or desktop.");
+      }
     }
   };
 
