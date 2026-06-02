@@ -32,6 +32,7 @@ export default function FamilyPage() {
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
   const [myRole, setMyRole] = useState<string>("member");
 
+  const [memberProfiles, setMemberProfiles] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<Tab>("recipes");
   const [showInvite, setShowInvite] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -70,6 +71,20 @@ export default function FamilyPage() {
       setCurrentUser({ id: user.id, name: profileData?.name ?? profileData?.email?.split("@")[0] ?? "You" });
       setMyRole(memberData?.find((m) => m.user_id === user.id)?.role ?? "member");
       setMyRecipes(myRecipeData ?? []);
+
+      // Load profiles for all members so we can show real names
+      const memberIds = (memberData ?? []).map((m) => m.user_id);
+      if (memberIds.length > 0) {
+        const { data: allProfiles } = await supabase
+          .from("profiles")
+          .select("id, name, email")
+          .in("id", memberIds);
+        const profileMap: Record<string, string> = {};
+        (allProfiles ?? []).forEach((p: { id: string; name: string | null; email: string | null }) => {
+          profileMap[p.id] = p.name ?? p.email?.split("@")[0] ?? "Member";
+        });
+        setMemberProfiles(profileMap);
+      }
 
       const alreadyShared = new Set((sharedData ?? []).map((s) => s.recipe_id));
       setSharedIds(alreadyShared);
@@ -179,7 +194,9 @@ export default function FamilyPage() {
   };
 
   const nameFor = (userId: string) =>
-    currentUser?.id === userId ? currentUser.name : "Family member";
+    currentUser?.id === userId
+      ? currentUser.name
+      : memberProfiles[userId] ?? "Family member";
 
   const initial = (name: string) => name[0]?.toUpperCase() ?? "?";
 
