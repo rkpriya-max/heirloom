@@ -7,11 +7,9 @@ import {
   Plus, Tag, GitBranch, MessageCircle, BookHeart, Loader2
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
-import { CHAT_SUGGESTIONS } from "@/lib/mock-data";
 import { Toast, useToast } from "@/components/Toast";
 
-type Tab = "recipe" | "chat" | "memories" | "versions";
-interface ChatMessage { role: "user" | "assistant"; text: string }
+type Tab = "recipe" | "memories" | "versions";
 
 interface Recipe {
   id: string;
@@ -74,8 +72,6 @@ export default function RecipeDetailPage() {
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
 
   const [tab, setTab] = useState<Tab>("recipe");
-  const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newMemory, setNewMemory] = useState("");
   const [newComment, setNewComment] = useState("");
   const [savingComment, setSavingComment] = useState(false);
@@ -168,10 +164,6 @@ export default function RecipeDetailPage() {
       const name = profileData?.name ?? profileData?.email?.split("@")[0] ?? "You";
       setCurrentUser({ id: user.id, name });
 
-      setChatMessages([{
-        role: "assistant",
-        text: `I know this recipe well. Ask me anything about ${recipeData.title} — substitutions, technique, storage, or what the notes mean.`,
-      }]);
       setLoading(false);
     };
     load();
@@ -194,23 +186,9 @@ export default function RecipeDetailPage() {
 
   const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: "recipe", label: "Recipe", icon: <BookHeart className="w-3.5 h-3.5" /> },
-    { key: "chat", label: "Chat", icon: <MessageCircle className="w-3.5 h-3.5" /> },
     { key: "memories", label: "Memories", icon: <Tag className="w-3.5 h-3.5" /> },
     { key: "versions", label: "Versions", icon: <GitBranch className="w-3.5 h-3.5" /> },
   ];
-
-  const handleChat = (msg?: string) => {
-    const text = msg ?? chatInput;
-    if (!text.trim()) return;
-    setChatMessages((prev) => [...prev, { role: "user", text }]);
-    setChatInput("");
-    setTimeout(() => {
-      setChatMessages((prev) => [...prev, {
-        role: "assistant",
-        text: "That's a great question. Based on what I know about this recipe, the key is balance — between the spices, the cooking technique, and the family tradition behind it. What specifically would you like to explore?",
-      }]);
-    }, 800);
-  };
 
   const handleAddComment = async () => {
     if (!newComment.trim() || !currentUser) return;
@@ -417,49 +395,6 @@ export default function RecipeDetailPage() {
                 </button>
               </div>
             </section>
-          </div>
-        )}
-
-        {/* ── CHAT TAB ── */}
-        {tab === "chat" && (
-          <div className="flex flex-col" style={{ minHeight: "60vh" }}>
-            <p className="text-xs text-stone-400 mb-4 text-center">Ask anything about this recipe — substitutions, technique, storage.</p>
-            {chatMessages.length <= 1 && (
-              <div className="flex flex-wrap gap-2 mb-4">
-                {CHAT_SUGGESTIONS.map((s) => (
-                  <button key={s} onClick={() => handleChat(s)}
-                    className="text-xs bg-stone-100 text-stone-600 px-3 py-1.5 rounded-full hover:bg-amber-50 hover:text-amber-700 transition-colors text-left">
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="space-y-3 flex-1 mb-4">
-              {chatMessages.map((m, i) => (
-                <div key={i} className={`flex gap-2 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
-                  {m.role === "assistant" && (
-                    <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-xs font-bold shrink-0">H</div>
-                  )}
-                  <div className={`rounded-2xl px-4 py-3 max-w-[85%] text-sm leading-relaxed
-                    ${m.role === "user" ? "bg-amber-600 text-white rounded-tr-sm" : "bg-white border border-stone-100 text-stone-700 rounded-tl-sm"}`}>
-                    {m.text}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleChat()}
-                placeholder="Ask about this recipe..."
-                className="flex-1 text-sm bg-white border border-stone-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-400"
-              />
-              <button onClick={() => handleChat()}
-                className="bg-amber-600 text-white rounded-xl px-3 hover:bg-amber-700 transition-colors">
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         )}
 
