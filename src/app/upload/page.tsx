@@ -35,12 +35,15 @@ export default function UploadPage() {
   const [recording, setRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [supported, setSupported] = useState(true);
+  const [isIOS, setIsIOS] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    setIsIOS(ios);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) { setSupported(false); return; }
@@ -334,7 +337,21 @@ export default function UploadPage() {
         {/* Voice tab */}
         {tab === "voice" && (
           <div className="bg-white border border-stone-200 rounded-2xl p-6">
-            {!supported ? (
+            {isIOS ? (
+              <div className="text-center py-4 space-y-3">
+                <div className="text-3xl">📱</div>
+                <p className="text-stone-700 font-medium text-sm">Safari on iPhone doesn&apos;t support live recording.</p>
+                <p className="text-stone-400 text-sm leading-relaxed">
+                  Use the <strong>Text tab</strong> instead — tap the 🎤 mic key on your iPhone keyboard and speak. It transcribes everything perfectly.
+                </p>
+                <button
+                  onClick={() => { setTab("text"); setError(null); }}
+                  className="w-full bg-amber-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-amber-700 transition-colors"
+                >
+                  Switch to Text tab →
+                </button>
+              </div>
+            ) : !supported ? (
               <div className="text-center py-6">
                 <p className="text-stone-500 text-sm">Voice recording isn&apos;t supported in this browser.</p>
                 <p className="text-stone-400 text-xs mt-2">Try Chrome on desktop or Android.</p>
@@ -375,7 +392,7 @@ export default function UploadPage() {
                 )}
               </>
             )}
-          </div>
+            </div>
         )}
 
         {/* Error */}
