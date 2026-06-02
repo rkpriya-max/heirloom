@@ -24,6 +24,7 @@ export default function UploadPage() {
   const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [isTouch, setIsTouch] = useState(false);
 
   // Link state
   const [url, setUrl] = useState("");
@@ -44,6 +45,7 @@ export default function UploadPage() {
   useEffect(() => {
     const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
     setIsIOS(ios);
+    setIsTouch("ontouchstart" in window || navigator.maxTouchPoints > 0);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) { setSupported(false); return; }
@@ -298,8 +300,12 @@ export default function UploadPage() {
                 <div className="bg-stone-100 rounded-full p-4 mb-4">
                   <Upload className="w-6 h-6 text-stone-400" />
                 </div>
-                <p className="text-stone-600 font-medium mb-1">Drop a photo here</p>
-                <p className="text-stone-400 text-sm">or tap to use your camera</p>
+                <p className="text-stone-600 font-medium mb-1">
+                  {isTouch ? "Tap to take a photo" : "Drop a photo here"}
+                </p>
+                <p className="text-stone-400 text-sm">
+                  {isTouch ? "or choose from your library" : "or click to browse files"}
+                </p>
                 <p className="text-stone-300 text-xs mt-3">JPG, PNG, WebP up to 10MB</p>
               </div>
             )}

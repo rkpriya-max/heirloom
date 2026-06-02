@@ -289,8 +289,8 @@ export default function ReviewPage() {
     <><main className="min-h-screen bg-stone-50 pb-20">
       <div className="sticky top-0 bg-white border-b border-stone-100 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <a href="/home" className="flex items-center gap-1 text-stone-500 text-sm hover:text-stone-700">
-            <ChevronLeft className="w-4 h-4" /> Home
+          <a href="/upload" className="flex items-center gap-1 text-stone-500 text-sm hover:text-stone-700">
+            <ChevronLeft className="w-4 h-4" /> Back
           </a>
           <h1 className="text-stone-800 font-serif text-lg">Review</h1>
           <button

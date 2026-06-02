@@ -24,13 +24,46 @@ export default function EventsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
 
-      const { data } = await supabase
+      // Own events + events shared with families the user belongs to
+      const { data: memberData } = await supabase
+        .from("family_members")
+        .select("family_id")
+        .eq("user_id", user.id);
+
+      const familyIds = (memberData ?? []).map((m) => m.family_id);
+
+      let allEvents: Event[] = [];
+
+      const { data: ownEvents } = await supabase
         .from("events")
         .select("id, title, description, event_date")
         .eq("host_id", user.id)
         .order("event_date", { ascending: true });
 
-      setEvents(data ?? []);
+      allEvents = ownEvents ?? [];
+
+      if (familyIds.length > 0) {
+        const { data: sharedEventLinks } = await supabase
+          .from("event_families")
+          .select("event_id")
+          .in("family_id", familyIds);
+
+        const sharedIds = (sharedEventLinks ?? []).map((r) => r.event_id);
+        const ownIds = new Set(allEvents.map((e) => e.id));
+        const newIds = sharedIds.filter((id) => !ownIds.has(id));
+
+        if (newIds.length > 0) {
+          const { data: sharedEvents } = await supabase
+            .from("events")
+            .select("id, title, description, event_date")
+            .in("id", newIds)
+            .order("event_date", { ascending: true });
+          allEvents = [...allEvents, ...(sharedEvents ?? [])];
+        }
+      }
+
+      allEvents.sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
+      setEvents(allEvents);
       setLoading(false);
     };
     load();
