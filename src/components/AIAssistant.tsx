@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Send, Loader2 } from "lucide-react";
+import { X, Send, Loader2, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
 interface Message { role: "user" | "assistant"; content: string }
@@ -81,20 +81,20 @@ export default function AIAssistant() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-24 right-4 z-40 w-13 h-13 bg-amber-500 hover:bg-amber-400 rounded-full shadow-lg flex items-center justify-center text-2xl transition-colors"
+          className="fixed bottom-24 right-4 z-40 bg-amber-600 hover:bg-amber-500 rounded-full shadow-lg flex items-center justify-center transition-colors"
           style={{ width: 52, height: 52 }}
           aria-label="Open Heirloom assistant"
         >
-          📜
+          <Sparkles className="w-5 h-5 text-white" />
         </button>
       )}
 
       {/* Chat overlay */}
       {open && (
-        <div className="fixed inset-0 z-50 bg-amber-50 flex flex-col">
+        <div className="fixed inset-0 z-50 bg-white flex flex-col">
 
           {/* Header */}
-          <div className="flex items-center justify-between px-5 pt-12 pb-4 border-b border-amber-100">
+          <div className="flex items-center justify-between px-5 pt-12 pb-4 border-b border-stone-100">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-xl shadow-sm">
                 📜
@@ -130,7 +130,7 @@ export default function AIAssistant() {
                   <button
                     key={chip}
                     onClick={() => send(chip)}
-                    className="text-xs bg-white border border-amber-200 text-amber-800 px-3 py-1.5 rounded-full hover:bg-amber-100 transition-colors"
+                    className="text-xs bg-stone-50 border border-stone-200 text-stone-700 px-3 py-1.5 rounded-full hover:bg-amber-50 hover:border-amber-300 hover:text-amber-800 transition-colors"
                   >
                     {chip}
                   </button>
@@ -166,13 +166,13 @@ export default function AIAssistant() {
           </div>
 
           {/* Input */}
-          <div className="px-4 py-4 border-t border-amber-100 bg-amber-50 flex gap-2 pb-safe">
+          <div className="px-4 py-4 border-t border-stone-100 bg-white flex gap-2 pb-safe">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send(input)}
               placeholder="Ask anything..."
-              className="flex-1 bg-white border border-amber-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 text-stone-800"
+              className="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 text-stone-800"
             />
             <button
               onClick={() => send(input)}
