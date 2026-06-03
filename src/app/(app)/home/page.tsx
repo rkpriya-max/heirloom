@@ -50,9 +50,9 @@ function getGreeting() {
 
 function getChatOpener(): string {
   const h = new Date().getHours();
-  if (h >= 6 && h < 12) return "Whose recipe are we keeping alive today?";
+  if (h >= 6 && h < 12) return "Which dish takes you somewhere good the moment you think of it?";
   if (h >= 12 && h < 17) return "What dish do you want the next generation to know?";
-  if (h >= 17 && h < 22) return "What's a recipe that should never be forgotten?";
+  if (h >= 17 && h < 22) return "What's a family recipe that should never be forgotten?";
   return "Tell me about a dish that means something to you.";
 }
 
