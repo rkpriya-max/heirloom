@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ArrowRight, ArrowLeft, X } from "lucide-react";
+import { createClient } from "@/lib/supabase";
 
 const STORAGE_KEY = "heirloom_onboarded";
 
@@ -52,6 +53,9 @@ export default function Onboarding({ onDone }: OnboardingProps) {
 
   const finish = () => {
     localStorage.setItem(STORAGE_KEY, "true");
+    // Persist across devices via Supabase user metadata
+    const supabase = createClient();
+    supabase.auth.updateUser({ data: { onboarded: true } });
     setExiting(true);
     setTimeout(onDone, 300);
   };
