@@ -114,7 +114,14 @@ export default function HomePage() {
     <>
       {showOnboarding && <Onboarding onDone={handleOnboardingDone} />}
 
-      <main className="max-w-lg mx-auto px-4 pt-10 space-y-8">
+      {/* Masthead */}
+      <div className="bg-amber-50 border-b border-amber-100">
+        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-center">
+          <span className="font-serif text-xl text-amber-900 tracking-wide">Heirloom</span>
+        </div>
+      </div>
+
+      <main className="max-w-lg mx-auto px-4 pt-6 space-y-8">
 
         {/* Header */}
         <div className="flex items-center justify-between">
