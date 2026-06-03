@@ -92,9 +92,19 @@ export default function EventsPage() {
     <main className="max-w-lg mx-auto px-4 pt-10 pb-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-serif text-stone-800">Events</h1>
-        <Link href="/events/new" className="bg-stone-800 text-white rounded-full p-2 hover:bg-stone-900 transition-colors">
-          <Plus className="w-5 h-5" />
-        </Link>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-400 bg-stone-100 px-2.5 py-1 rounded-full">
+          Coming soon
+        </span>
+      </div>
+
+      <div className="flex flex-col items-center text-center pt-8 pb-12">
+        <div className="w-20 h-20 rounded-full bg-stone-100 flex items-center justify-center mb-6">
+          <CalendarDays className="w-9 h-9 text-stone-300" />
+        </div>
+        <h2 className="text-lg font-serif text-stone-700 mb-2">Events are on their way</h2>
+        <p className="text-stone-400 text-sm leading-relaxed max-w-xs">
+          Plan dinners, build menus from your recipe collection, and share a beautiful menu card with your guests.
+        </p>
       </div>
 
       {events.length === 0 ? (
