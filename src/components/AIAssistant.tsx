@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { X, Send, Loader2, Sparkles, CheckCircle } from "lucide-react";
+import { X, Send, Loader2, Sparkles, CheckCircle, Mic, Square, Camera } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { safeStr, textToIngredients, textToSteps, detectRecipeIntent } from "@/lib/recipe-utils";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type ChatState = "chatting" | "extracting" | "confirming" | "saving" | "memory1" | "memory2" | "complete";
+type ChatState = "chatting" | "adding" | "recording" | "extracting" | "confirming" | "saving" | "memory1" | "memory2" | "complete";
 
 interface RecipeCard {
   title: string;
@@ -22,7 +22,7 @@ interface RecipeCard {
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
-  type?: "text" | "recipe_card";
+  type?: "text" | "recipe_card" | "input_picker";
   recipeCard?: RecipeCard;
 }
 
@@ -69,6 +69,11 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcript, setTranscript] = useState("");
 
   // Load user + recipe context
   useEffect(() => {
@@ -93,6 +98,91 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [open]);
+
+  // ── Photo scan in chat ─────────────────────────────────────────────────────
+
+  const handlePhotoScan = async (file: File) => {
+    addMessage("user", "📸 Photo uploaded");
+    setLoading(true);
+    addMessage("assistant", "Reading the recipe from your photo...");
+    try {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      const compressed = await new Promise<File>((resolve) => {
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          const MAX = 1200;
+          const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => resolve(blob ? new File([blob], "recipe.jpg", { type: "image/jpeg" }) : file), "image/jpeg", 0.82);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+        img.src = url;
+      });
+      const formData = new FormData();
+      formData.append("image", compressed);
+      const res = await fetch("/api/digitize", { method: "POST", body: formData });
+      const data = await res.json();
+      if (data.error) {
+        setMessages((prev) => [...prev.slice(0, -1)]);
+        addMessage("assistant", data.error);
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const recipe = Array.isArray(data.recipes) ? data.recipes[0] : data.recipes as any;
+        const stepsArr = Array.isArray(recipe?.steps?.value) ? recipe.steps.value : [];
+        const ingsArr = Array.isArray(recipe?.ingredients?.value) ? recipe.ingredients.value : [];
+        const ingredientCount = ingsArr.reduce((n: number, g: { items?: string[] }) => n + (Array.isArray(g.items) ? g.items.length : 0), 0);
+        const card: RecipeCard = {
+          title: safeStr(recipe?.title?.value) || "Recipe",
+          ingredientCount, stepCount: stepsArr.length,
+          cookTime: safeStr(recipe?.cook_time?.value) || null, raw: recipe,
+        };
+        setPendingRecipe(recipe);
+        setChatState("confirming");
+        setMessages((prev) => [...prev.slice(0, -1), {
+          role: "assistant", content: "Here's what I found in the photo:",
+          type: "recipe_card", recipeCard: card,
+        }]);
+      }
+    } catch {
+      setMessages((prev) => [...prev.slice(0, -1)]);
+      addMessage("assistant", "Couldn't read that photo. Try again or type the recipe instead.");
+    }
+    setLoading(false);
+  };
+
+  // ── Voice recording in chat ────────────────────────────────────────────────
+
+  const startVoice = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { addMessage("assistant", "Voice isn't supported in this browser. Try Chrome on Android or paste the recipe text."); return; }
+    const rec = new SR();
+    rec.continuous = true; rec.interimResults = true; rec.lang = "en-US";
+    let final = "";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final += e.results[i][0].transcript + " ";
+        else interim = e.results[i][0].transcript;
+      }
+      setTranscript(final + interim);
+    };
+    rec.onend = () => { setIsRecording(false); if (final.trim()) send(final.trim()); };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onerror = (e: any) => { setIsRecording(false); addMessage("assistant", `Mic error: ${e.error}. Try typing instead.`); };
+    recognitionRef.current = rec;
+    rec.start();
+    setIsRecording(true);
+    setTranscript("");
+    setChatState("recording");
+  };
+
+  const stopVoice = () => { recognitionRef.current?.stop(); setIsRecording(false); setChatState("chatting"); };
 
   // ── Save recipe to Supabase ────────────────────────────────────────────────
 
@@ -208,6 +298,19 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
       setTimeout(() => addMessage("assistant",
         `It's all here. Your family's archive is growing. 🌿`
       ), 300);
+      return;
+    }
+
+    // Intercept "add recipe" intent — show picker instead of API call
+    if (/add (this |a |the )?(recipe|dish)/i.test(text) && chatState === "chatting") {
+      addMessage("user", text);
+      setChatState("adding");
+      setShowFollowUpChips(false);
+      setTimeout(() => setMessages((prev) => [...prev, {
+        role: "assistant",
+        content: "How would you like to add it?",
+        type: "input_picker",
+      }]), 200);
       return;
     }
 
@@ -357,6 +460,42 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
                     </div>
                   )}
 
+                  {/* Input picker */}
+                  {m.type === "input_picker" && chatState === "adding" && (
+                    <div className="flex flex-col gap-2 mt-1">
+                      <button
+                        onClick={() => photoInputRef.current?.click()}
+                        className="flex items-center gap-3 bg-white border border-stone-200 rounded-xl px-4 py-3 hover:border-amber-300 hover:bg-amber-50 transition-colors text-left"
+                      >
+                        <Camera className="w-4 h-4 text-amber-600 shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-stone-800">Scan a photo</p>
+                          <p className="text-xs text-stone-400">Handwritten card, printout, screen</p>
+                        </div>
+                      </button>
+                      <button
+                        onClick={startVoice}
+                        className="flex items-center gap-3 bg-white border border-stone-200 rounded-xl px-4 py-3 hover:border-amber-300 hover:bg-amber-50 transition-colors text-left"
+                      >
+                        <Mic className="w-4 h-4 text-amber-600 shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-stone-800">Speak it</p>
+                          <p className="text-xs text-stone-400">Describe the recipe out loud</p>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => { setChatState("chatting"); inputRef.current?.focus(); }}
+                        className="flex items-center gap-3 bg-white border border-stone-200 rounded-xl px-4 py-3 hover:border-amber-300 hover:bg-amber-50 transition-colors text-left"
+                      >
+                        <Send className="w-4 h-4 text-amber-600 shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-stone-800">Type or paste it</p>
+                          <p className="text-xs text-stone-400">Paste a link or describe the recipe</p>
+                        </div>
+                      </button>
+                    </div>
+                  )}
+
                   {/* Recipe card */}
                   {m.type === "recipe_card" && m.recipeCard && (
                     <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
@@ -419,6 +558,33 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
 
             <div ref={bottomRef} />
           </div>
+
+          {/* Hidden photo input */}
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) { setChatState("chatting"); handlePhotoScan(f); e.target.value = ""; }
+            }}
+          />
+
+          {/* Voice recording indicator */}
+          {isRecording && (
+            <div className="px-4 py-2 bg-red-50 border-t border-red-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-xs text-red-600 font-medium">Recording...</span>
+                {transcript && <span className="text-xs text-stone-500 truncate max-w-48">{transcript}</span>}
+              </div>
+              <button onClick={stopVoice} className="flex items-center gap-1 text-xs text-red-600 font-medium">
+                <Square className="w-3 h-3 fill-red-500" /> Stop
+              </button>
+            </div>
+          )}
 
           {/* Input */}
           <div className="border-t border-stone-100 bg-white pb-safe">
