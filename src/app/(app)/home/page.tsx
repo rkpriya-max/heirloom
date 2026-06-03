@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, ChevronRight, Users, LogOut, Loader2, X } from "lucide-react";
+import { ChevronRight, LogOut, Loader2, X, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import Onboarding, { useOnboarding } from "@/components/Onboarding";
+import AIAssistant from "@/components/AIAssistant";
 
 interface Recipe {
   id: string;
@@ -47,6 +48,14 @@ function getGreeting() {
   return "Good evening";
 }
 
+function getChatOpener(): string {
+  const h = new Date().getHours();
+  if (h >= 6 && h < 12) return "Whose recipe are we keeping alive today?";
+  if (h >= 12 && h < 17) return "What dish do you want the next generation to know?";
+  if (h >= 17 && h < 22) return "What's a recipe that should never be forgotten?";
+  return "Tell me about a dish that means something to you.";
+}
+
 export default function HomePage() {
   const router = useRouter();
   const { show: showOnboarding, dismiss: dismissOnboarding } = useOnboarding();
@@ -65,6 +74,8 @@ export default function HomePage() {
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [chatOpener] = useState(getChatOpener);
+  const [openChat, setOpenChat] = useState(false);
 
   // Profile sheet
   const [showProfile, setShowProfile] = useState(false);
@@ -215,6 +226,7 @@ export default function HomePage() {
   return (
     <>
       {showOnboarding && <Onboarding onDone={handleOnboardingDone} />}
+      {openChat && <AIAssistant defaultOpen={true} />}
 
       {/* Masthead */}
       <div className="bg-amber-50 border-b border-amber-100">
@@ -244,19 +256,23 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Quick actions */}
-        <div className="grid grid-cols-2 gap-3">
-          <Link href="/recipes/new" className="bg-amber-600 text-white rounded-2xl p-4 flex flex-col gap-2 hover:bg-amber-700 transition-colors">
-            <Plus className="w-5 h-5" />
-            <span className="font-medium text-sm">Add recipe</span>
-            <span className="text-amber-200 text-xs">Scan, speak or type</span>
-          </Link>
-          <Link href="/family/new" className="bg-stone-800 text-white rounded-2xl p-4 flex flex-col gap-2 hover:bg-stone-900 transition-colors">
-            <Users className="w-5 h-5" />
-            <span className="font-medium text-sm">Add Family</span>
-            <span className="text-stone-400 text-xs">Share and preserve memories</span>
-          </Link>
-        </div>
+        {/* Chat hero */}
+        <button
+          onClick={() => setOpenChat(true)}
+          className="w-full text-left bg-white border border-stone-100 rounded-2xl p-5 shadow-sm hover:border-amber-200 transition-colors group"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center shrink-0">
+              <Sparkles className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="text-xs font-medium text-amber-700 uppercase tracking-wide">Heirloom</span>
+          </div>
+          <p className="font-serif text-stone-800 text-lg leading-snug mb-4">{chatOpener}</p>
+          <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 group-hover:border-amber-300 transition-colors">
+            <span className="text-stone-400 text-sm flex-1">Ask anything...</span>
+            <Sparkles className="w-4 h-4 text-amber-400" />
+          </div>
+        </button>
 
         {/* Recipes */}
         <section>

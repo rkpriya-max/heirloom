@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { X, Send, Loader2, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
@@ -22,8 +23,14 @@ const CHIPS = [
   "Add a new recipe",
 ];
 
-export default function AIAssistant() {
-  const [open, setOpen] = useState(false);
+interface AIAssistantProps {
+  defaultOpen?: boolean;
+}
+
+export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
+  const [open, setOpen] = useState(defaultOpen);
+  const pathname = usePathname();
+  const isHome = pathname === "/home";
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -77,8 +84,8 @@ export default function AIAssistant() {
 
   return (
     <>
-      {/* Floating button */}
-      {!open && (
+      {/* Floating button — hidden on home page where the hero card handles this */}
+      {!open && !isHome && (
         <button
           onClick={() => setOpen(true)}
           className="fixed bottom-24 right-4 z-40 bg-amber-600 hover:bg-amber-500 rounded-full shadow-lg flex items-center justify-center transition-colors"
