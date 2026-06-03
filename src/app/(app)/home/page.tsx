@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, CalendarDays, ChevronRight, BookOpen, LogOut, Loader2, X } from "lucide-react";
+import { Plus, ChevronRight, Users, LogOut, Loader2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import Onboarding, { useOnboarding } from "@/components/Onboarding";
 
@@ -142,10 +142,10 @@ export default function HomePage() {
             <span className="font-medium text-sm">Add recipe</span>
             <span className="text-amber-200 text-xs">Scan or type</span>
           </Link>
-          <Link href="/events/new" className="bg-stone-800 text-white rounded-2xl p-4 flex flex-col gap-2 hover:bg-stone-900 transition-colors">
-            <CalendarDays className="w-5 h-5" />
-            <span className="font-medium text-sm">Create event</span>
-            <span className="text-stone-400 text-xs">Build a menu</span>
+          <Link href="/family" className="bg-stone-800 text-white rounded-2xl p-4 flex flex-col gap-2 hover:bg-stone-900 transition-colors">
+            <Users className="w-5 h-5" />
+            <span className="font-medium text-sm">Family</span>
+            <span className="text-stone-400 text-xs">Share & preserve</span>
           </Link>
         </div>
 
@@ -182,19 +182,6 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Family CTA */}
-        <section>
-          <Link href="/family" className="bg-stone-100 rounded-2xl p-4 flex items-center gap-4 hover:bg-stone-200 transition-colors">
-            <div className="bg-white rounded-xl p-3">
-              <BookOpen className="w-5 h-5 text-stone-400" />
-            </div>
-            <div className="flex-1">
-              <p className="font-medium text-stone-700 text-sm">Create a family</p>
-              <p className="text-stone-400 text-xs mt-0.5">Share recipes and memories across generations</p>
-            </div>
-            <ChevronRight className="w-4 h-4 text-stone-300" />
-          </Link>
-        </section>
       </main>
 
       {/* Profile sheet */}
