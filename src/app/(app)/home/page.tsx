@@ -20,6 +20,26 @@ interface Profile {
   created_at: string;
 }
 
+interface ActivityItem {
+  id: string;
+  type: "recipe_shared" | "member_joined";
+  actor: string;
+  text: string;
+  familyName: string;
+  createdAt: string;
+}
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return "Good morning";
@@ -42,6 +62,7 @@ export default function HomePage() {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -73,6 +94,87 @@ export default function HomePage() {
       setProfile(prof);
       setEditName(prof?.name ?? "");
       setRecipes(recs ?? []);
+
+      // Activity feed — recent events from families the user belongs to
+      const { data: membershipData } = await supabase
+        .from("family_members")
+        .select("family_id, families(id, name)")
+        .eq("user_id", user.id);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const familyIds = (membershipData ?? []).map((m: any) => m.family_id);
+      const familyNames: Record<string, string> = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (membershipData ?? []).forEach((m: any) => {
+        const fam = Array.isArray(m.families) ? m.families[0] : m.families;
+        if (fam?.id) familyNames[fam.id] = fam.name;
+      });
+
+      if (familyIds.length > 0) {
+        const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const [{ data: sharedRecipes }, { data: newMembers }] = await Promise.all([
+          supabase.from("family_recipes")
+            .select("recipe_id, family_id, shared_by, created_at, recipes(id, title)")
+            .in("family_id", familyIds)
+            .neq("shared_by", user.id)
+            .gte("created_at", since)
+            .order("created_at", { ascending: false })
+            .limit(10),
+          supabase.from("family_members")
+            .select("user_id, family_id, joined_at")
+            .in("family_id", familyIds)
+            .neq("user_id", user.id)
+            .gte("joined_at", since)
+            .order("joined_at", { ascending: false })
+            .limit(10),
+        ]);
+
+        const actorIds = Array.from(new Set([
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ...(sharedRecipes ?? []).map((r: any) => r.shared_by),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ...(newMembers ?? []).map((m: any) => m.user_id),
+        ].filter(Boolean)));
+
+        const profileMap: Record<string, string> = {};
+        if (actorIds.length > 0) {
+          const { data: actorProfiles } = await supabase
+            .from("profiles").select("id, name, email").in("id", actorIds);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (actorProfiles ?? []).forEach((p: any) => {
+            profileMap[p.id] = p.name ?? p.email?.split("@")[0] ?? "Someone";
+          });
+        }
+
+        const items: ActivityItem[] = [
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ...(sharedRecipes ?? []).map((r: any) => {
+            const recipe = Array.isArray(r.recipes) ? r.recipes[0] : r.recipes;
+            return {
+              id: `recipe-${r.recipe_id}-${r.family_id}`,
+              type: "recipe_shared" as const,
+              actor: profileMap[r.shared_by] ?? "Someone",
+              text: recipe?.title ?? "a recipe",
+              familyName: familyNames[r.family_id] ?? "your family",
+              createdAt: r.created_at,
+            };
+          }),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ...(newMembers ?? []).map((m: any) => ({
+            id: `member-${m.user_id}-${m.family_id}`,
+            type: "member_joined" as const,
+            actor: profileMap[m.user_id] ?? "Someone",
+            text: "",
+            familyName: familyNames[m.family_id] ?? "your family",
+            createdAt: m.joined_at,
+          })),
+        ]
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 5);
+
+        setActivity(items);
+      }
+
       setLoading(false);
     };
     load();
@@ -188,6 +290,34 @@ export default function HomePage() {
             </div>
           )}
         </section>
+
+        {/* Activity feed */}
+        {activity.length > 0 && (
+          <section>
+            <p className="text-sm font-medium text-stone-700 mb-3">What&apos;s cooking 🍳</p>
+            <div className="space-y-2">
+              {activity.map((item) => (
+                <div key={item.id} className="flex items-start gap-3 bg-white rounded-xl border border-stone-100 px-4 py-3">
+                  <div className="w-7 h-7 rounded-full bg-stone-100 flex items-center justify-center text-xs font-medium text-stone-600 shrink-0 mt-0.5">
+                    {item.actor[0]?.toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {item.type === "recipe_shared" ? (
+                      <p className="text-sm text-stone-800 leading-snug">
+                        <span className="font-semibold">{item.actor}</span> shared <span className="font-semibold">{item.text}</span> in {item.familyName}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-stone-800 leading-snug">
+                        <span className="font-semibold">{item.actor}</span> joined {item.familyName}
+                      </p>
+                    )}
+                    <p className="text-xs text-amber-600 mt-0.5">{relativeTime(item.createdAt)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
       </main>
 
