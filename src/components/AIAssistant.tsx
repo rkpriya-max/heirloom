@@ -67,6 +67,7 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
   const [savedRecipeTitle, setSavedRecipeTitle] = useState("");
 
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Load user + recipe context
   useEffect(() => {
@@ -84,6 +85,13 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  // Focus input when chat opens
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [open]);
 
   // ── Save recipe to Supabase ────────────────────────────────────────────────
 
@@ -322,20 +330,9 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
               </div>
               <div className="bg-stone-50 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
                 <p className="text-stone-800 text-sm leading-relaxed">{opener}</p>
+                <p className="text-stone-400 text-xs mt-1.5">Type below to respond ↓</p>
               </div>
             </div>
-
-            {/* Chips */}
-            {messages.length === 0 && (
-              <div className="flex flex-wrap gap-2 pl-11">
-                {CHIPS.map((chip) => (
-                  <button key={chip} onClick={() => send(chip)}
-                    className="text-xs bg-stone-50 border border-stone-200 text-stone-700 px-3 py-1.5 rounded-full hover:bg-amber-50 hover:border-amber-300 hover:text-amber-800 transition-colors">
-                    {chip}
-                  </button>
-                ))}
-              </div>
-            )}
 
             {/* Conversation */}
             {messages.map((m, i) => (
@@ -398,36 +395,51 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
               </div>
             )}
 
-            {/* Skip option during memory prompts */}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input */}
+          <div className="border-t border-stone-100 bg-white pb-safe">
+            <div className="px-4 pt-3 pb-2 flex gap-2">
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && send(input)}
+                placeholder={
+                  chatState === "memory1" ? "Share a memory, a person, a gathering..."
+                  : chatState === "memory2" ? "A holiday, a celebration, an occasion..."
+                  : "Type, paste a link, or describe a recipe..."
+                }
+                className="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 text-stone-800"
+              />
+              <button onClick={() => send(input)} disabled={!input.trim() || loading || chatState === "saving"}
+                className="bg-amber-600 text-white rounded-xl px-4 hover:bg-amber-700 transition-colors disabled:opacity-40">
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Chips — shown below input before first message */}
+            {messages.length === 0 && chatState === "chatting" && (
+              <div className="flex gap-2 overflow-x-auto px-4 pb-3 scrollbar-hide">
+                {CHIPS.map((chip) => (
+                  <button key={chip} onClick={() => send(chip)}
+                    className="shrink-0 text-xs bg-stone-50 border border-stone-200 text-stone-600 px-3 py-1.5 rounded-full hover:bg-amber-50 hover:border-amber-300 hover:text-amber-800 transition-colors">
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Skip during memory prompts */}
             {(chatState === "memory1" || chatState === "memory2") && !loading && (
-              <div className="pl-11">
+              <div className="px-4 pb-3">
                 <button onClick={() => send("skip")}
                   className="text-xs text-stone-400 hover:text-stone-600 underline underline-offset-2">
                   Skip for now
                 </button>
               </div>
             )}
-
-            <div ref={bottomRef} />
-          </div>
-
-          {/* Input */}
-          <div className="px-4 py-4 border-t border-stone-100 bg-white flex gap-2 pb-safe">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send(input)}
-              placeholder={
-                chatState === "memory1" ? "Share a memory, a person, a gathering..."
-                : chatState === "memory2" ? "A holiday, a celebration, an occasion..."
-                : "Ask anything, paste a link, describe a recipe..."
-              }
-              className="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 text-stone-800"
-            />
-            <button onClick={() => send(input)} disabled={!input.trim() || loading || chatState === "saving"}
-              className="bg-amber-600 text-white rounded-xl px-4 hover:bg-amber-700 transition-colors disabled:opacity-40">
-              <Send className="w-4 h-4" />
-            </button>
           </div>
         </div>
       )}
