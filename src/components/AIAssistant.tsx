@@ -65,6 +65,7 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
   const [pendingRecipe, setPendingRecipe] = useState<any>(null);
   const [savedRecipeId, setSavedRecipeId] = useState<string | null>(null);
   const [savedRecipeTitle, setSavedRecipeTitle] = useState("");
+  const [showFollowUpChips, setShowFollowUpChips] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -276,7 +277,10 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
         }),
       });
       const data = await res.json();
-      if (data.text) addMessage("assistant", data.text);
+      if (data.text) {
+        addMessage("assistant", data.text);
+        if (messages.length <= 2) setShowFollowUpChips(true);
+      }
     } catch {
       addMessage("assistant", "Something went wrong. Try again.");
     }
@@ -382,6 +386,24 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
                 </div>
               </div>
             ))}
+
+            {/* Follow-up action chips after first exchange */}
+            {showFollowUpChips && !loading && chatState === "chatting" && (
+              <div className="pl-11 flex flex-wrap gap-2">
+                <button onClick={() => { setShowFollowUpChips(false); send("I want to add this recipe"); }}
+                  className="text-xs bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1.5 rounded-full hover:bg-amber-100 transition-colors">
+                  📝 Add this recipe
+                </button>
+                <button onClick={() => { setShowFollowUpChips(false); send("I want to share a memory about this"); }}
+                  className="text-xs bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1.5 rounded-full hover:bg-amber-100 transition-colors">
+                  💬 Share a memory
+                </button>
+                <button onClick={() => { setShowFollowUpChips(false); send("Tell me more about this dish"); }}
+                  className="text-xs bg-stone-50 border border-stone-200 text-stone-700 px-3 py-1.5 rounded-full hover:bg-stone-100 transition-colors">
+                  ✨ Tell me more
+                </button>
+              </div>
+            )}
 
             {/* Loading */}
             {(loading || chatState === "saving") && (
