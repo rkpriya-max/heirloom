@@ -408,10 +408,10 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
 
       {/* Chat overlay */}
       {open && (
-        <div className="fixed inset-0 z-50 bg-white flex flex-col">
+        <div className="fixed inset-0 z-[100] bg-white flex flex-col">
 
           {/* Header */}
-          <div className="flex items-center justify-between px-5 pt-12 pb-4 border-b border-stone-100">
+          <div className="flex items-center justify-between px-5 pb-4 border-b border-stone-100" style={{ paddingTop: 'max(env(safe-area-inset-top), 48px)' }}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center shrink-0">
                 <Sparkles className="w-5 h-5 text-white" />
