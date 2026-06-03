@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ChevronLeft, Clock, Users, Globe, Lock, Send,
-  Plus, Tag, GitBranch, MessageCircle, BookHeart, Loader2
+  Plus, Tag, GitBranch, MessageCircle, BookHeart, Loader2, Pencil, Check, X
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { Toast, useToast } from "@/components/Toast";
@@ -78,6 +78,16 @@ export default function RecipeDetailPage() {
   const [savingMemory, setSavingMemory] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const { toast, show: showToast, clear: clearToast } = useToast();
+
+  // Edit mode
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editIngredients, setEditIngredients] = useState("");
+  const [editSteps, setEditSteps] = useState("");
+  const [editCookTime, setEditCookTime] = useState("");
+  const [editYield, setEditYield] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const handleCoverUpload = async (file: File, inputEl?: HTMLInputElement) => {
     if (!recipe) return;
@@ -216,6 +226,81 @@ export default function RecipeDetailPage() {
     setSavingMemory(false);
   };
 
+  const startEditing = () => {
+    if (!recipe) return;
+    setEditTitle(recipe.title);
+    setEditCookTime(recipe.cook_time ?? "");
+    setEditYield(recipe.yield ?? "");
+    setEditNotes(recipe.notes ?? "");
+    setEditIngredients(
+      ingredients.flatMap((g) =>
+        g.section ? [`[${g.section}]`, ...g.items] : g.items
+      ).join("\n")
+    );
+    setEditSteps(steps.map((s) => s.content).join("\n"));
+    setEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!recipe || !currentUser) return;
+    setSavingEdit(true);
+    const supabase = createClient();
+
+    await supabase.from("recipes").update({
+      title: editTitle.trim(),
+      cook_time: editCookTime.trim() || null,
+      yield: editYield.trim() || null,
+      notes: editNotes.trim() || null,
+    }).eq("id", id);
+
+    // Rebuild ingredients
+    await supabase.from("recipe_ingredients").delete().eq("recipe_id", id);
+    const lines = editIngredients.split("\n").map((l) => l.trim()).filter(Boolean);
+    const groups: { section: string | null; items: string[] }[] = [];
+    let current: { section: string | null; items: string[] } = { section: null, items: [] };
+    for (const line of lines) {
+      if (line.startsWith("[") && line.endsWith("]")) {
+        if (current.items.length > 0 || current.section) groups.push(current);
+        current = { section: line.slice(1, -1), items: [] };
+      } else {
+        current.items.push(line);
+      }
+    }
+    if (current.items.length > 0 || current.section) groups.push(current);
+    if (groups.length > 0) {
+      await supabase.from("recipe_ingredients").insert(
+        groups.map((g, i) => ({ recipe_id: id, section: g.section, items: g.items, sort_order: i }))
+      );
+    }
+
+    // Rebuild steps
+    await supabase.from("recipe_steps").delete().eq("recipe_id", id);
+    const stepLines = editSteps.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (stepLines.length > 0) {
+      await supabase.from("recipe_steps").insert(
+        stepLines.map((content, i) => ({ recipe_id: id, content, sort_order: i }))
+      );
+    }
+
+    // Refresh local state
+    const [{ data: newIngredients }, { data: newSteps }] = await Promise.all([
+      supabase.from("recipe_ingredients").select("id, section, items, sort_order").eq("recipe_id", id).order("sort_order"),
+      supabase.from("recipe_steps").select("id, content, sort_order").eq("recipe_id", id).order("sort_order"),
+    ]);
+    setRecipe((prev) => prev ? {
+      ...prev,
+      title: editTitle.trim(),
+      cook_time: editCookTime.trim() || null,
+      yield: editYield.trim() || null,
+      notes: editNotes.trim() || null,
+    } : prev);
+    setIngredients((newIngredients ?? []) as IngredientGroup[]);
+    setSteps((newSteps ?? []) as Step[]);
+    setEditing(false);
+    setSavingEdit(false);
+    showToast("Recipe saved");
+  };
+
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
@@ -269,15 +354,56 @@ export default function RecipeDetailPage() {
       </div>
 
       <div className="px-4 py-5">
-        <h1 className="text-2xl font-serif text-stone-800 mb-1">{recipe.title}</h1>
-        {recipe.description && <p className="text-stone-500 text-sm mb-3">{recipe.description}</p>}
+        {editing ? (
+          <div className="mb-3">
+            <input
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="w-full text-2xl font-serif text-stone-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400 mb-2"
+            />
+            <div className="flex items-center gap-2">
+              <button onClick={handleSaveEdit} disabled={savingEdit}
+                className="flex items-center gap-1 text-xs text-white bg-amber-600 hover:bg-amber-700 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 font-medium">
+                {savingEdit ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />} Save
+              </button>
+              <button onClick={() => setEditing(false)}
+                className="flex items-center gap-1 text-xs text-stone-500 hover:text-stone-700 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-full transition-colors">
+                <X className="w-3 h-3" /> Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-start gap-2 mb-1">
+            <h1 className="text-2xl font-serif text-stone-800 flex-1">{recipe.title}</h1>
+            {currentUser && (
+              <button onClick={startEditing}
+                className="mt-1 text-stone-400 hover:text-amber-600 transition-colors shrink-0">
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
+        {!editing && recipe.description && <p className="text-stone-500 text-sm mb-3">{recipe.description}</p>}
         <div className="flex items-center gap-4 text-stone-400 text-xs mb-4">
-          {recipe.cook_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{recipe.cook_time}</span>}
-          {recipe.yield && <span className="flex items-center gap-1"><Users className="w-3 h-3" />{recipe.yield}</span>}
-          <span className="ml-auto flex items-center gap-1">
-            <MessageCircle className="w-3 h-3" />{comments.length}
-            <Tag className="w-3 h-3 ml-2" />{memories.length}
-          </span>
+          {editing ? (
+            <>
+              <input value={editCookTime} onChange={(e) => setEditCookTime(e.target.value)} placeholder="Cook time"
+                className="text-xs bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 w-24 focus:outline-none focus:border-amber-400 text-stone-700" />
+              <input value={editYield} onChange={(e) => setEditYield(e.target.value)} placeholder="Serves"
+                className="text-xs bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 w-20 focus:outline-none focus:border-amber-400 text-stone-700" />
+            </>
+          ) : (
+            <>
+              {recipe.cook_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{recipe.cook_time}</span>}
+              {recipe.yield && <span className="flex items-center gap-1"><Users className="w-3 h-3" />{recipe.yield}</span>}
+            </>
+          )}
+          {!editing && (
+            <span className="ml-auto flex items-center gap-1">
+              <MessageCircle className="w-3 h-3" />{comments.length}
+              <Tag className="w-3 h-3 ml-2" />{memories.length}
+            </span>
+          )}
         </div>
         {tags.length > 0 && (
           <div className="flex gap-1.5 flex-wrap mb-6">
@@ -314,7 +440,18 @@ export default function RecipeDetailPage() {
               </div>
             )}
 
-            {ingredients.length > 0 && (
+            {editing ? (
+              <section>
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-2">Ingredients</h2>
+                <p className="text-[10px] text-stone-400 mb-2">One per line. Use [Section Name] for groups.</p>
+                <textarea
+                  value={editIngredients}
+                  onChange={(e) => setEditIngredients(e.target.value)}
+                  rows={Math.max(6, editIngredients.split("\n").length + 1)}
+                  className="w-full text-sm bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-400 resize-none leading-relaxed"
+                />
+              </section>
+            ) : ingredients.length > 0 ? (
               <section>
                 <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-4">Ingredients</h2>
                 <div className="space-y-5">
@@ -335,9 +472,20 @@ export default function RecipeDetailPage() {
                   ))}
                 </div>
               </section>
-            )}
+            ) : null}
 
-            {steps.length > 0 && (
+            {editing ? (
+              <section>
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-2">Instructions</h2>
+                <p className="text-[10px] text-stone-400 mb-2">One step per line.</p>
+                <textarea
+                  value={editSteps}
+                  onChange={(e) => setEditSteps(e.target.value)}
+                  rows={Math.max(6, editSteps.split("\n").length + 1)}
+                  className="w-full text-sm bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-400 resize-none leading-relaxed"
+                />
+              </section>
+            ) : steps.length > 0 ? (
               <section>
                 <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-4">Instructions</h2>
                 <ol className="space-y-4">
@@ -349,14 +497,25 @@ export default function RecipeDetailPage() {
                   ))}
                 </ol>
               </section>
-            )}
+            ) : null}
 
-            {recipe.notes && (
+            {editing ? (
+              <section>
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-2">Family notes</h2>
+                <textarea
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Any notes about this recipe..."
+                  className="w-full text-sm bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-400 resize-none"
+                />
+              </section>
+            ) : recipe.notes ? (
               <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-amber-600 mb-2">Family notes</p>
                 <p className="text-stone-600 text-sm leading-relaxed italic">{recipe.notes}</p>
               </div>
-            )}
+            ) : null}
 
             <section>
               <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-3">Comments</h2>
