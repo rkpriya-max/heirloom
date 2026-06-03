@@ -147,12 +147,12 @@ export default function HomePage() {
           <Link href="/recipes/new" className="bg-amber-600 text-white rounded-2xl p-4 flex flex-col gap-2 hover:bg-amber-700 transition-colors">
             <Plus className="w-5 h-5" />
             <span className="font-medium text-sm">Add recipe</span>
-            <span className="text-amber-200 text-xs">Scan or type</span>
+            <span className="text-amber-200 text-xs">Scan, speak or type</span>
           </Link>
-          <Link href="/family" className="bg-stone-800 text-white rounded-2xl p-4 flex flex-col gap-2 hover:bg-stone-900 transition-colors">
+          <Link href="/family/new" className="bg-stone-800 text-white rounded-2xl p-4 flex flex-col gap-2 hover:bg-stone-900 transition-colors">
             <Users className="w-5 h-5" />
-            <span className="font-medium text-sm">Family</span>
-            <span className="text-stone-400 text-xs">Share & preserve</span>
+            <span className="font-medium text-sm">Add Family</span>
+            <span className="text-stone-400 text-xs">Share and preserve memories</span>
           </Link>
         </div>
 
