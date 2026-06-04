@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ChevronLeft, Clock, Users, Globe, Lock, Send,
-  Plus, Tag, MessageCircle, BookHeart, Loader2, Pencil, Check, X
+  ChevronLeft, ChevronRight, Clock, Users, Globe, Lock, Send,
+  Plus, Tag, MessageCircle, BookHeart, Loader2, Pencil, Check, X,
+  Volume2, VolumeX
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { Toast, useToast } from "@/components/Toast";
