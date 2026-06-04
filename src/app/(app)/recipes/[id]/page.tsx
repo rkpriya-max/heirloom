@@ -159,7 +159,6 @@ export default function RecipeDetailPage() {
       setTags((tagData ?? []).map((t: { tag: string }) => t.tag));
       setComments((commentData ?? []) as Comment[]);
       setMemories((memoryData ?? []) as Memory[]);
-      setVersions((versionData ?? []) as Version[]);
 
       const name = profileData?.name ?? profileData?.email?.split("@")[0] ?? "You";
       setCurrentUser({ id: user.id, name });
