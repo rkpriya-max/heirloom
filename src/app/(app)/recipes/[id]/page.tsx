@@ -526,6 +526,15 @@ export default function RecipeDetailPage() {
               </section>
             ) : null}
 
+            {steps.length > 0 && !editing && (
+              <button
+                onClick={() => { setCookingStep(0); setCookingMode(true); }}
+                className="w-full bg-amber-600 text-white py-4 rounded-2xl text-base font-medium flex items-center justify-center gap-2 hover:bg-amber-700 transition-colors active:scale-95"
+              >
+                🍳 Start Cooking
+              </button>
+            )}
+
             {editing ? (
               <section>
                 <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-2">Family notes</h2>
