@@ -50,13 +50,6 @@ interface Memory {
   tagged_people: string[];
 }
 
-interface Version {
-  id: string;
-  label: string;
-  notes: string | null;
-  created_at: string;
-  author_id: string | null;
-}
 
 export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>();
