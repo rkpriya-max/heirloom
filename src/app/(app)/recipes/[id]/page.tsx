@@ -186,7 +186,6 @@ export default function RecipeDetailPage() {
   const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: "recipe", label: "Recipe", icon: <BookHeart className="w-3.5 h-3.5" /> },
     { key: "memories", label: "Memories", icon: <Tag className="w-3.5 h-3.5" /> },
-    { key: "versions", label: "Versions", icon: <GitBranch className="w-3.5 h-3.5" /> },
   ];
 
   const handleAddComment = async () => {
