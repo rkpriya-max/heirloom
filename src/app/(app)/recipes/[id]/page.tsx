@@ -176,6 +176,37 @@ export default function RecipeDetailPage() {
     load();
   }, [id, router]);
 
+  // TTS — speak current step whenever it changes
+  useEffect(() => {
+    if (!cookingMode || muted || steps.length === 0) return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(steps[cookingStep]?.content ?? "");
+    utt.rate = 0.9;
+    window.speechSynthesis.speak(utt);
+    return () => { window.speechSynthesis.cancel(); };
+  }, [cookingStep, cookingMode, muted, steps]);
+
+  // Wake lock — keep screen on while cooking
+  useEffect(() => {
+    if (!cookingMode) return;
+    const acquire = async () => {
+      try {
+        wakeLockRef.current = await (navigator as Navigator & { wakeLock?: { request: (t: string) => Promise<WakeLockSentinel> } }).wakeLock?.request("screen") ?? null;
+      } catch { /* not supported or denied — silent */ }
+    };
+    acquire();
+    const onVisibility = () => { if (document.visibilityState === "visible") acquire(); };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      wakeLockRef.current?.release();
+      wakeLockRef.current = null;
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.speechSynthesis.cancel();
+    };
+  }, [cookingMode]);
+
+  const exitCooking = () => { setCookingMode(false); setCookingStep(0); };
+
   if (loading) {
     return (
       <main className="max-w-lg mx-auto px-4 pt-10">
