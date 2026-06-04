@@ -642,6 +642,66 @@ export default function RecipeDetailPage() {
       </div>
     </main>
     {toast && <Toast message={toast} onDone={clearToast} />}
+
+    {/* ── COOKING MODE OVERLAY ── */}
+    {cookingMode && steps.length > 0 && (
+      <div className="fixed inset-0 z-50 bg-stone-900 flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-12 pb-4">
+          <p className="text-stone-400 text-sm font-medium truncate max-w-[70%]">{recipe.title}</p>
+          <button onClick={exitCooking} className="text-stone-500 hover:text-white p-2 -mr-2">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div className="px-6 mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-stone-400 text-sm">Step {cookingStep + 1} of {steps.length}</span>
+            <button onClick={() => setMuted((m) => !m)} className="text-stone-500 hover:text-stone-300 p-1">
+              {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
+          </div>
+          <div className="h-1 bg-stone-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-amber-500 rounded-full transition-all duration-300"
+              style={{ width: `${((cookingStep + 1) / steps.length) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Step text */}
+        <div className="flex-1 flex items-center px-6">
+          <p className="text-white text-2xl leading-relaxed font-serif">{steps[cookingStep].content}</p>
+        </div>
+
+        {/* Nav buttons */}
+        <div className="px-6 pb-10 flex gap-4">
+          <button
+            onClick={() => setCookingStep((s) => Math.max(0, s - 1))}
+            disabled={cookingStep === 0}
+            className="flex-1 h-16 rounded-2xl bg-stone-800 text-white text-lg font-medium disabled:opacity-25 flex items-center justify-center gap-2 hover:bg-stone-700 transition-colors active:scale-95"
+          >
+            <ChevronLeft className="w-6 h-6" /> Prev
+          </button>
+          {cookingStep < steps.length - 1 ? (
+            <button
+              onClick={() => setCookingStep((s) => s + 1)}
+              className="flex-1 h-16 rounded-2xl bg-amber-600 text-white text-lg font-medium flex items-center justify-center gap-2 hover:bg-amber-500 transition-colors active:scale-95"
+            >
+              Next <ChevronRight className="w-6 h-6" />
+            </button>
+          ) : (
+            <button
+              onClick={exitCooking}
+              className="flex-1 h-16 rounded-2xl bg-amber-600 text-white text-lg font-medium flex items-center justify-center gap-2 hover:bg-amber-500 transition-colors active:scale-95"
+            >
+              Done
+            </button>
+          )}
+        </div>
+      </div>
+    )}
     </>
   );
 }
