@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ChevronLeft, Clock, Users, Globe, Lock, Send,
-  Plus, Tag, GitBranch, MessageCircle, BookHeart, Loader2, Pencil, Check, X
+  Plus, Tag, MessageCircle, BookHeart, Loader2, Pencil, Check, X
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { Toast, useToast } from "@/components/Toast";
