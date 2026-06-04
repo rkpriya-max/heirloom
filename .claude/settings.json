@@ -1,7 +1,23 @@
 {
   "permissions": {
     "allow": [
-      "Bash(vercel *)"
+      "Bash(vercel *)",
+      "Bash(git *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); FILE=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // empty'); cd \"/Users/pri/Documents/Start Ups/heirloom\" && git add -A && if ! git diff --cached --quiet; then BASENAME=$(basename \"$FILE\" 2>/dev/null || echo \"files\"); git commit -m \"Auto: edit $BASENAME\" && vercel --yes 2>&1 | tail -5; fi",
+            "async": true,
+            "statusMessage": "Committing and deploying to Vercel..."
+          }
+        ]
+      }
     ]
   }
 }
