@@ -590,32 +590,7 @@ export default function RecipeDetailPage() {
           </div>
         )}
 
-        {/* ── VERSIONS TAB ── */}
-        {tab === "versions" && (
-          <div className="space-y-4">
-            <p className="text-sm text-stone-500">Different people make this differently. Each version is a branch of the same root recipe.</p>
-            {versions.length === 0 && (
-              <div className="text-center py-8 text-stone-400 text-sm">No versions yet. Be the first to save yours.</div>
-            )}
-            {versions.map((v, i) => {
-              const authorName = v.author_id ? nameFor(v.author_id) : "Unknown";
-              return (
-                <div key={v.id} className={`bg-white border rounded-2xl p-4 ${i === 0 ? "border-amber-200" : "border-stone-100"}`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <GitBranch className="w-3.5 h-3.5 text-amber-600" />
-                    <p className="font-medium text-stone-800 text-sm">{v.label}</p>
-                    {i === 0 && <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Original</span>}
-                  </div>
-                  <p className="text-xs text-stone-400 mb-2">by {authorName} · {formatDate(v.created_at)}</p>
-                  {v.notes && <p className="text-stone-600 text-sm italic">{v.notes}</p>}
-                </div>
-              );
-            })}
-            <button className="w-full border-2 border-dashed border-stone-200 rounded-2xl p-4 text-stone-400 text-sm flex items-center justify-center gap-2 hover:border-amber-300 hover:text-amber-600 transition-colors">
-              <Plus className="w-4 h-4" /> Save my version of this recipe
-            </button>
-          </div>
-        )}
+
       </div>
     </main>
     {toast && <Toast message={toast} onDone={clearToast} />}
