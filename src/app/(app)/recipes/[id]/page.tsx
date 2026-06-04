@@ -9,7 +9,7 @@ import {
 import { createClient } from "@/lib/supabase";
 import { Toast, useToast } from "@/components/Toast";
 
-type Tab = "recipe" | "memories" | "versions";
+type Tab = "recipe" | "memories";
 
 interface Recipe {
   id: string;
