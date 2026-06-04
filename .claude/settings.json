@@ -3,7 +3,8 @@
     "allow": [
       "Bash(vercel *)",
       "Bash(git *)"
-    ]
+    ],
+    "defaultMode": "auto"
   },
   "hooks": {
     "PostToolUse": [
