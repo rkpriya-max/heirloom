@@ -65,6 +65,13 @@ export default function RecipeDetailPage() {
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
 
   const [tab, setTab] = useState<Tab>("recipe");
+
+  // Cooking mode
+  const [cookingMode, setCookingMode] = useState(false);
+  const [cookingStep, setCookingStep] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+
   const [newMemory, setNewMemory] = useState("");
   const [newComment, setNewComment] = useState("");
   const [savingComment, setSavingComment] = useState(false);
