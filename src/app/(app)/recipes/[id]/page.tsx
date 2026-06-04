@@ -61,7 +61,6 @@ export default function RecipeDetailPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
-  const [versions, setVersions] = useState<Version[]>([]);
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
 
   const [tab, setTab] = useState<Tab>("recipe");
