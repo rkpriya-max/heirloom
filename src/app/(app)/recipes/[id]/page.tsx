@@ -645,7 +645,7 @@ export default function RecipeDetailPage() {
 
     {/* ── COOKING MODE OVERLAY ── */}
     {cookingMode && steps.length > 0 && (
-      <div className="fixed inset-0 z-50 bg-stone-900 flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <div className="fixed inset-0 z-[200] bg-stone-900 flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-12 pb-4">
           <p className="text-stone-400 text-sm font-medium truncate max-w-[70%]">{recipe.title}</p>
