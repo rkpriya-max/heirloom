@@ -140,7 +140,6 @@ export default function RecipeDetailPage() {
         { data: tagData },
         { data: commentData },
         { data: memoryData },
-        { data: versionData },
         { data: profileData },
       ] = await Promise.all([
         supabase.from("recipes").select("id, title, description, notes, cook_time, yield, is_public, user_id, original_image_url, voice_recording_url, voice_recorded_by, cover_image_url").eq("id", id).single(),
@@ -149,7 +148,6 @@ export default function RecipeDetailPage() {
         supabase.from("recipe_tags").select("tag").eq("recipe_id", id),
         supabase.from("recipe_comments").select("id, content, created_at, user_id").eq("recipe_id", id).order("created_at"),
         supabase.from("recipe_memories").select("id, content, created_at, user_id, tagged_people").eq("recipe_id", id).order("created_at"),
-        supabase.from("recipe_versions").select("id, label, notes, created_at, author_id").eq("recipe_id", id).order("created_at"),
         supabase.from("profiles").select("id, name, email").eq("id", user.id).single(),
       ]);
 
