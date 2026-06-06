@@ -2,7 +2,25 @@
   "permissions": {
     "allow": [
       "Bash(vercel *)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(npx *)",
+      "Bash(npm *)",
+      "Bash(mkdir *)",
+      "Bash(open *)",
+      "mcp__Claude_Preview__preview_eval",
+      "mcp__Claude_Preview__preview_screenshot",
+      "mcp__Claude_Preview__preview_start",
+      "mcp__Claude_Preview__preview_stop",
+      "mcp__Claude_Preview__preview_snapshot",
+      "mcp__Claude_Preview__preview_logs",
+      "mcp__Claude_Preview__preview_click",
+      "mcp__Claude_Preview__preview_list",
+      "mcp__mcp-obsidian__obsidian_get_file_contents",
+      "mcp__mcp-obsidian__obsidian_simple_search",
+      "mcp__mcp-obsidian__obsidian_list_files_in_dir",
+      "mcp__mcp-obsidian__obsidian_get_recent_changes",
+      "mcp__mcp-obsidian__obsidian_get_recent_periodic_notes",
+      "mcp__mcp-obsidian__obsidian_batch_get_file_contents"
     ],
     "defaultMode": "auto"
   },
