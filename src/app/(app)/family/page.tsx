@@ -121,7 +121,7 @@ export default function FamilyLandingPage() {
         </div>
       </div>
 
-      <p className="text-stone-400 text-sm">Recipes taste better when they&apos;re shared. Create a family group and everyone can contribute to the collection, any time.</p>
+      <p className="text-stone-400 text-sm">Your family&apos;s kitchen, all in one place. Share recipes, leave comments, and capture the little memories that make a dish more than just ingredients — the stories behind them last as long as the recipes do.</p>
 
       {families.length === 0 ? (
         <div className="flex flex-col items-center text-center pt-12">
