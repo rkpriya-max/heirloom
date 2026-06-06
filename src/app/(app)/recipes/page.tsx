@@ -101,7 +101,7 @@ export default function RecipesPage() {
 
   return (
     <main className="max-w-lg mx-auto px-4 pt-10 pb-28">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-serif text-stone-800">Recipes</h1>
         <div className="flex items-center gap-2">
           {recipes.length > 0 && (
@@ -119,6 +119,8 @@ export default function RecipesPage() {
           )}
         </div>
       </div>
+
+      <p className="text-stone-400 text-sm mb-5">All your recipes, gathered in one place. Search by name, ingredient, or tag — or just browse and see what catches your eye.</p>
 
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
