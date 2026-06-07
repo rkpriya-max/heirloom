@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Mulish } from "next/font/google";
+import { Allura, Cormorant_Garamond, Mulish } from "next/font/google";
 import "./globals.css";
 
 const mulish = Mulish({
@@ -13,6 +13,13 @@ const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
+  display: "swap",
+});
+
+const allura = Allura({
+  variable: "--font-allura",
+  subsets: ["latin"],
+  weight: "400",
   display: "swap",
 });
 
@@ -36,7 +43,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${mulish.variable} ${cormorant.variable} h-full antialiased`}
+      className={`${mulish.variable} ${cormorant.variable} ${allura.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

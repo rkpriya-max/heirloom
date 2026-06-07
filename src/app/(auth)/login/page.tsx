@@ -90,7 +90,7 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-sm">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-serif text-stone-800 mb-2">Heirloom</h1>
+        <span className="font-script text-5xl block mb-1" style={{ color: 'var(--red)', lineHeight: 1 }}>Heirloom</span>
         <p className="text-stone-400 text-sm">Welcome back</p>
       </div>
 

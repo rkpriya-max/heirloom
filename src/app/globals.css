@@ -14,18 +14,9 @@
   --ink-soft: #6E5947;
   --ink-faint: #9C8975;
   --line: rgba(42,28,21,0.10);
-}
 
-@theme inline {
-  --color-background: var(--bg);
-  --color-foreground: var(--ink);
-  --font-sans: var(--font-mulish);
-  --font-serif: var(--font-cormorant);
-
-  /* white → warm surface cream */
+  /* Override Tailwind color tokens — in :root so they win over @layer theme */
   --color-white: #FFFDF8;
-
-  /* stone → warm ink-based tones */
   --color-stone-50: #F3E9D7;
   --color-stone-100: #EAE0CE;
   --color-stone-200: #DDD0BB;
@@ -36,8 +27,6 @@
   --color-stone-700: #4A3728;
   --color-stone-800: #2A1C15;
   --color-stone-900: #1A0F0A;
-
-  /* amber → crimson red + mustard gold palette */
   --color-amber-50: #FBF4E7;
   --color-amber-100: #F6E7C6;
   --color-amber-200: #EECCB0;
@@ -48,6 +37,14 @@
   --color-amber-700: #7A1B1A;
   --color-amber-800: #6A1715;
   --color-amber-900: #50120F;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --font-sans: var(--font-mulish);
+  --font-serif: var(--font-cormorant);
+  --font-script: var(--font-allura);
 }
 
 html {
@@ -74,4 +71,8 @@ input, textarea, select {
 
 .font-serif {
   font-family: var(--font-cormorant), Georgia, serif;
+}
+
+.font-script {
+  font-family: var(--font-allura), cursive;
 }

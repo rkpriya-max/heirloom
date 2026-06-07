@@ -229,9 +229,9 @@ export default function HomePage() {
       {openChat && <AIAssistant defaultOpen={true} />}
 
       {/* Masthead */}
-      <div className="bg-amber-50 border-b border-amber-100">
+      <div className="border-b sticky top-0 z-10" style={{ background: 'rgba(243,233,215,0.88)', backdropFilter: 'blur(12px)', borderColor: 'var(--line)' }}>
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-center">
-          <span className="font-serif text-xl text-amber-900 tracking-wide">Heirloom</span>
+          <span className="font-script text-4xl" style={{ color: 'var(--red)', lineHeight: 1 }}>Heirloom</span>
         </div>
       </div>
 
