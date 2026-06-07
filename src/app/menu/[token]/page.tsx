@@ -116,7 +116,7 @@ export default function PublicMenuPage() {
         <p className="text-stone-400 text-xs mb-3">Want to preserve your own family recipes?</p>
         <Link href="/signup"
           className="inline-block bg-amber-600 text-white text-sm font-medium px-6 py-3 rounded-xl hover:bg-amber-700 transition-colors">
-          Try Heirloom →
+          Try Sunday&apos;s Lunch →
         </Link>
       </div>
     </main>

@@ -13,7 +13,7 @@ const screens = [
     visualBg: "bg-amber-100",
     step: "Step 1",
     headline: "Preserve any recipe.",
-    body: "Photograph a handwritten card, record a voice, paste from a message, or drop a link. Heirloom structures it and keeps the original exactly as it was.",
+    body: "Photograph a handwritten card, record a voice, paste from a message, or drop a link. Sunday's Lunch structures it and keeps the original exactly as it was.",
   },
   {
     bg: "bg-amber-50",

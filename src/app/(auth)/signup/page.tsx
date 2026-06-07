@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase";
+import { Wordmark } from "@/components/Wordmark";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -84,9 +85,9 @@ export default function SignupPage() {
   return (
     <div className="w-full max-w-sm">
       <div className="text-center mb-8">
-        <span className="font-script text-5xl block mb-3" style={{ color: 'var(--red)', lineHeight: 1 }}>Heirloom</span>
-        <h1 className="text-2xl font-serif text-stone-800 mb-3">That recipe your mum made is sitting in a dusty notebook.</h1>
-        <p className="text-stone-400 text-sm leading-relaxed">Heirloom keeps it alive for generations to come.</p>
+        <Wordmark size={48} strokeWidth={3.8} className="mb-3" />
+        <h1 className="text-2xl font-serif text-stone-800 mb-3 mt-2">That recipe your mum made is sitting in a dusty notebook.</h1>
+        <p className="text-stone-400 text-sm leading-relaxed">Sunday&apos;s Lunch keeps it alive for generations to come.</p>
       </div>
 
       <form onSubmit={handleSignup} className="space-y-4">

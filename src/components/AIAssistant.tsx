@@ -400,7 +400,7 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
           onClick={() => setOpen(true)}
           className="fixed bottom-24 right-4 z-40 bg-amber-600 hover:bg-amber-500 rounded-full shadow-lg flex items-center justify-center transition-colors"
           style={{ width: 52, height: 52 }}
-          aria-label="Open Heirloom assistant"
+          aria-label="Open Sunday's Lunch assistant"
         >
           <Sparkles className="w-5 h-5 text-white" />
         </button>
@@ -417,7 +417,7 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="font-serif text-stone-800 text-base leading-tight">Heirloom</p>
+                <p className="font-serif text-stone-800 text-base leading-tight">Sunday&apos;s Lunch</p>
                 <p className="text-xs text-amber-700">Your kitchen companion</p>
               </div>
             </div>

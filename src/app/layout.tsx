@@ -24,7 +24,7 @@ const allura = Allura({
 });
 
 export const metadata: Metadata = {
-  title: "Heirloom — Preserve Your Family Recipes",
+  title: "Sunday's Lunch — Preserve Your Family Recipes",
   description:
     "Preserve the handwritten recipes that hold your family's history. Share with family. Keep them forever.",
 };

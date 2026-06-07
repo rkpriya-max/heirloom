@@ -252,7 +252,7 @@ export default function UploadPage() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <a href="/home" className="text-3xl font-serif text-stone-800 mb-2 block hover:text-amber-700 transition-colors">Heirloom</a>
+          <a href="/home" className="text-3xl font-serif text-stone-800 mb-2 block hover:text-amber-700 transition-colors">Sunday&apos;s Lunch</a>
           <p className="text-stone-500 text-sm">Add a recipe to your archive</p>
         </div>
 

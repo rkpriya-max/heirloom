@@ -129,7 +129,7 @@ export default function FamilyPage() {
     if (!inviteLink) return;
     if (navigator.share) {
       try {
-        await navigator.share({ title: `Join ${family?.name} on Heirloom`, url: inviteLink });
+        await navigator.share({ title: `Join ${family?.name} on Sunday's Lunch`, url: inviteLink });
         return;
       } catch { /* user cancelled */ return; }
     }

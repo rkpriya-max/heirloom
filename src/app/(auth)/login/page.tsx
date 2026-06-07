@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
+import { Wordmark } from "@/components/Wordmark";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -90,8 +91,8 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-sm">
       <div className="text-center mb-8">
-        <span className="font-script text-5xl block mb-1" style={{ color: 'var(--red)', lineHeight: 1 }}>Heirloom</span>
-        <p className="text-stone-400 text-sm">Welcome back</p>
+        <Wordmark size={48} strokeWidth={3.8} className="mb-1" />
+        <p className="text-stone-400 text-sm mt-2">Welcome back</p>
       </div>
 
       <form onSubmit={handleLogin} className="space-y-4">

@@ -129,7 +129,7 @@ export default function JoinPage() {
         <div className="text-4xl mb-4">🔗</div>
         <h1 className="text-xl font-serif text-stone-800 mb-2">Invalid invite</h1>
         <p className="text-stone-400 text-sm mb-6">{error}</p>
-        <Link href="/home" className="text-amber-600 text-sm font-medium">Go to Heirloom →</Link>
+        <Link href="/home" className="text-amber-600 text-sm font-medium">Go to Sunday&apos;s Lunch →</Link>
       </main>
     );
   }
@@ -153,7 +153,7 @@ export default function JoinPage() {
           <Users className="w-9 h-9 text-amber-600" />
         </div>
 
-        <h1 className="text-3xl font-serif text-stone-800 mb-1">Heirloom</h1>
+        <h1 className="text-3xl font-serif text-stone-800 mb-1">Sunday&apos;s Lunch</h1>
         <p className="text-stone-400 text-sm mb-8">You&apos;ve been invited to join</p>
 
         <div className="bg-white rounded-2xl border border-stone-100 p-6 mb-6 text-left">

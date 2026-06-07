@@ -7,6 +7,7 @@ import { ChevronRight, LogOut, Loader2, X, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import Onboarding, { useOnboarding } from "@/components/Onboarding";
 import AIAssistant from "@/components/AIAssistant";
+import { Wordmark, Ladle } from "@/components/Wordmark";
 
 interface Recipe {
   id: string;
@@ -231,7 +232,7 @@ export default function HomePage() {
       {/* Masthead */}
       <div className="border-b sticky top-0 z-10" style={{ background: 'rgba(243,233,215,0.88)', backdropFilter: 'blur(12px)', borderColor: 'var(--line)' }}>
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-center">
-          <span className="font-script text-4xl" style={{ color: 'var(--red)', lineHeight: 1 }}>Heirloom</span>
+          <Wordmark size={32} strokeWidth={3.8} />
         </div>
       </div>
 
@@ -259,18 +260,27 @@ export default function HomePage() {
         {/* Chat hero */}
         <button
           onClick={() => setOpenChat(true)}
-          className="w-full text-left bg-white border border-stone-100 rounded-2xl p-5 shadow-sm hover:border-amber-200 transition-colors group"
+          className="w-full text-left rounded-3xl overflow-hidden relative"
+          style={{
+            background: 'linear-gradient(145deg, #9a2620 0%, var(--red) 55%, var(--red-deep) 100%)',
+            padding: '22px 20px 18px',
+            boxShadow: '0 14px 30px -16px rgba(122,27,26,0.7)',
+          }}
         >
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center shrink-0">
-              <Sparkles className="w-3.5 h-3.5 text-white" />
-            </div>
-            <span className="text-xs font-medium text-amber-700 uppercase tracking-wide">Heirloom</span>
+          {/* Decorative ladle watermark */}
+          <div className="absolute pointer-events-none" style={{ right: -24, top: -24, width: 110, opacity: 0.10 }}>
+            <Ladle color="#FFFDF8" strokeWidth={3} />
           </div>
-          <p className="font-serif text-stone-800 text-lg leading-snug mb-4">{chatOpener}</p>
-          <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 group-hover:border-amber-300 transition-colors">
-            <span className="text-stone-400 text-sm flex-1">Ask anything...</span>
-            <Sparkles className="w-4 h-4 text-amber-400" />
+          <div className="flex items-center gap-2 mb-3.5">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--mustard)' }}>
+              <Sparkles className="w-3 h-3" style={{ color: '#3a2606' }} />
+            </div>
+            <span className="text-xs font-bold uppercase" style={{ color: 'var(--mustard-soft)', letterSpacing: '0.18em' }}>Ask Sunday&apos;s Lunch</span>
+          </div>
+          <p className="font-serif text-xl leading-snug mb-4" style={{ color: '#FFFDF8', maxWidth: '17ch' }}>{chatOpener}</p>
+          <div className="flex items-center gap-2 rounded-xl px-4 py-3" style={{ background: 'rgba(0,0,0,0.18)' }}>
+            <span className="flex-1 text-sm" style={{ color: 'rgba(244,234,215,0.65)' }}>Tell me about a dish…</span>
+            <Sparkles className="w-4 h-4" style={{ color: 'var(--mustard-soft)' }} />
           </div>
         </button>
 
