@@ -628,7 +628,7 @@ export default function RecipeDetailPage() {
                 </div>
               );
             })}
-            <button className="w-full rounded-2xl p-4 text-sm font-bold flex items-center justify-center gap-2 transition-colors" style={{ border: '1.5px dashed var(--line-strong)', color: 'var(--red)' }}>
+            <button className="w-full rounded-2xl p-4 text-sm font-bold flex items-center justify-center gap-2 transition-colors" style={{ border: '1.5px dashed var(--mustard)', color: 'var(--red)' }}>
               <Plus className="w-4 h-4" /> Save my version
             </button>
           </div>
