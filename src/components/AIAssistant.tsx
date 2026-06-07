@@ -82,28 +82,8 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setUserId(user.id);
-      const { data } = await supabase
-        .from("recipes")
-        .select("id, title, recipe_tags(tag), recipe_ingredients(items)")
-        .eq("user_id", user.id)
-        .limit(50);
-      const formatted = (data ?? []).map((r: {
-        id: string;
-        title: string;
-        recipe_tags: { tag: string }[];
-        recipe_ingredients: { items: string[] }[];
-      }) => {
-        const tags = r.recipe_tags?.map((t) => `#${t.tag}`).join(" ") ?? "";
-        const ingredients = (r.recipe_ingredients ?? [])
-          .flatMap((g) => g.items ?? [])
-          .slice(0, 8)
-          .join(", ");
-        const parts = [r.title];
-        if (ingredients) parts.push(`[${ingredients}]`);
-        if (tags) parts.push(tags);
-        return parts.join(" ");
-      });
-      setRecipeContext(formatted);
+      const { data } = await supabase.from("recipes").select("title").eq("user_id", user.id).limit(50);
+      setRecipeContext((data ?? []).map((r: { title: string }) => r.title));
     };
     load();
   }, []);
@@ -266,9 +246,7 @@ export default function AIAssistant({ defaultOpen = false }: AIAssistantProps) {
 
     setSavedRecipeId(recipeId);
     setSavedRecipeTitle(title);
-    const newIngredients = ingredientGroups.flatMap((g) => g.items).slice(0, 8).join(", ");
-    const newEntry = newIngredients ? `${title} [${newIngredients}]` : title;
-    setRecipeContext((prev) => [newEntry, ...prev]);
+    setRecipeContext((prev) => [title, ...prev]);
     setChatState("memory1");
 
     addMessage("assistant",

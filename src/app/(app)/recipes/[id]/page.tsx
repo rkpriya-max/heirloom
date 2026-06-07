@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ChevronLeft, ChevronRight, Clock, Users, Globe, Lock, Send,
-  Plus, Tag, MessageCircle, BookHeart, Loader2, Pencil, Check, X,
-  Volume2, VolumeX
+  ChevronLeft, Clock, Users, Globe, Lock, Send,
+  Plus, Tag, GitBranch, MessageCircle, BookHeart, Loader2, Pencil, Check, X
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { Toast, useToast } from "@/components/Toast";
 
-type Tab = "recipe" | "memories";
+type Tab = "recipe" | "memories" | "versions";
 
 interface Recipe {
   id: string;
@@ -51,6 +50,13 @@ interface Memory {
   tagged_people: string[];
 }
 
+interface Version {
+  id: string;
+  label: string;
+  notes: string | null;
+  created_at: string;
+  author_id: string | null;
+}
 
 export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -62,16 +68,10 @@ export default function RecipeDetailPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
+  const [versions, setVersions] = useState<Version[]>([]);
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
 
   const [tab, setTab] = useState<Tab>("recipe");
-
-  // Cooking mode
-  const [cookingMode, setCookingMode] = useState(false);
-  const [cookingStep, setCookingStep] = useState(0);
-  const [muted, setMuted] = useState(false);
-  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
-
   const [newMemory, setNewMemory] = useState("");
   const [newComment, setNewComment] = useState("");
   const [savingComment, setSavingComment] = useState(false);
@@ -148,6 +148,7 @@ export default function RecipeDetailPage() {
         { data: tagData },
         { data: commentData },
         { data: memoryData },
+        { data: versionData },
         { data: profileData },
       ] = await Promise.all([
         supabase.from("recipes").select("id, title, description, notes, cook_time, yield, is_public, user_id, original_image_url, voice_recording_url, voice_recorded_by, cover_image_url").eq("id", id).single(),
@@ -156,6 +157,7 @@ export default function RecipeDetailPage() {
         supabase.from("recipe_tags").select("tag").eq("recipe_id", id),
         supabase.from("recipe_comments").select("id, content, created_at, user_id").eq("recipe_id", id).order("created_at"),
         supabase.from("recipe_memories").select("id, content, created_at, user_id, tagged_people").eq("recipe_id", id).order("created_at"),
+        supabase.from("recipe_versions").select("id, label, notes, created_at, author_id").eq("recipe_id", id).order("created_at"),
         supabase.from("profiles").select("id, name, email").eq("id", user.id).single(),
       ]);
 
@@ -167,6 +169,7 @@ export default function RecipeDetailPage() {
       setTags((tagData ?? []).map((t: { tag: string }) => t.tag));
       setComments((commentData ?? []) as Comment[]);
       setMemories((memoryData ?? []) as Memory[]);
+      setVersions((versionData ?? []) as Version[]);
 
       const name = profileData?.name ?? profileData?.email?.split("@")[0] ?? "You";
       setCurrentUser({ id: user.id, name });
@@ -175,37 +178,6 @@ export default function RecipeDetailPage() {
     };
     load();
   }, [id, router]);
-
-  // TTS — speak current step whenever it changes
-  useEffect(() => {
-    if (!cookingMode || muted || steps.length === 0) return;
-    window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(steps[cookingStep]?.content ?? "");
-    utt.rate = 0.9;
-    window.speechSynthesis.speak(utt);
-    return () => { window.speechSynthesis.cancel(); };
-  }, [cookingStep, cookingMode, muted, steps]);
-
-  // Wake lock — keep screen on while cooking
-  useEffect(() => {
-    if (!cookingMode) return;
-    const acquire = async () => {
-      try {
-        wakeLockRef.current = await (navigator as Navigator & { wakeLock?: { request: (t: string) => Promise<WakeLockSentinel> } }).wakeLock?.request("screen") ?? null;
-      } catch { /* not supported or denied — silent */ }
-    };
-    acquire();
-    const onVisibility = () => { if (document.visibilityState === "visible") acquire(); };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      wakeLockRef.current?.release();
-      wakeLockRef.current = null;
-      document.removeEventListener("visibilitychange", onVisibility);
-      window.speechSynthesis.cancel();
-    };
-  }, [cookingMode]);
-
-  const exitCooking = () => { setCookingMode(false); setCookingStep(0); };
 
   if (loading) {
     return (
@@ -225,6 +197,7 @@ export default function RecipeDetailPage() {
   const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: "recipe", label: "Recipe", icon: <BookHeart className="w-3.5 h-3.5" /> },
     { key: "memories", label: "Memories", icon: <Tag className="w-3.5 h-3.5" /> },
+    { key: "versions", label: "Versions", icon: <GitBranch className="w-3.5 h-3.5" /> },
   ];
 
   const handleAddComment = async () => {
@@ -526,15 +499,6 @@ export default function RecipeDetailPage() {
               </section>
             ) : null}
 
-            {steps.length > 0 && !editing && (
-              <button
-                onClick={() => { setCookingStep(0); setCookingMode(true); }}
-                className="w-full bg-amber-600 text-white py-4 rounded-2xl text-base font-medium flex items-center justify-center gap-2 hover:bg-amber-700 transition-colors active:scale-95"
-              >
-                🍳 Start Cooking
-              </button>
-            )}
-
             {editing ? (
               <section>
                 <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-2">Family notes</h2>
@@ -638,70 +602,35 @@ export default function RecipeDetailPage() {
           </div>
         )}
 
-
+        {/* ── VERSIONS TAB ── */}
+        {tab === "versions" && (
+          <div className="space-y-4">
+            <p className="text-sm text-stone-500">Different people make this differently. Each version is a branch of the same root recipe.</p>
+            {versions.length === 0 && (
+              <div className="text-center py-8 text-stone-400 text-sm">No versions yet. Be the first to save yours.</div>
+            )}
+            {versions.map((v, i) => {
+              const authorName = v.author_id ? nameFor(v.author_id) : "Unknown";
+              return (
+                <div key={v.id} className={`bg-white border rounded-2xl p-4 ${i === 0 ? "border-amber-200" : "border-stone-100"}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <GitBranch className="w-3.5 h-3.5 text-amber-600" />
+                    <p className="font-medium text-stone-800 text-sm">{v.label}</p>
+                    {i === 0 && <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Original</span>}
+                  </div>
+                  <p className="text-xs text-stone-400 mb-2">by {authorName} · {formatDate(v.created_at)}</p>
+                  {v.notes && <p className="text-stone-600 text-sm italic">{v.notes}</p>}
+                </div>
+              );
+            })}
+            <button className="w-full border-2 border-dashed border-stone-200 rounded-2xl p-4 text-stone-400 text-sm flex items-center justify-center gap-2 hover:border-amber-300 hover:text-amber-600 transition-colors">
+              <Plus className="w-4 h-4" /> Save my version of this recipe
+            </button>
+          </div>
+        )}
       </div>
     </main>
     {toast && <Toast message={toast} onDone={clearToast} />}
-
-    {/* ── COOKING MODE OVERLAY ── */}
-    {cookingMode && steps.length > 0 && (
-      <div className="fixed inset-0 z-[200] bg-stone-900 flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-12 pb-4">
-          <p className="text-stone-400 text-sm font-medium truncate max-w-[70%]">{recipe.title}</p>
-          <button onClick={exitCooking} className="text-stone-500 hover:text-white p-2 -mr-2">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Progress bar */}
-        <div className="px-6 mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-stone-400 text-sm">Step {cookingStep + 1} of {steps.length}</span>
-            <button onClick={() => setMuted((m) => !m)} className="text-stone-500 hover:text-stone-300 p-1">
-              {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            </button>
-          </div>
-          <div className="h-1 bg-stone-700 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-amber-500 rounded-full transition-all duration-300"
-              style={{ width: `${((cookingStep + 1) / steps.length) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Step text */}
-        <div className="flex-1 flex items-center px-6">
-          <p className="text-white text-2xl leading-relaxed font-serif">{steps[cookingStep].content}</p>
-        </div>
-
-        {/* Nav buttons */}
-        <div className="px-6 pb-10 flex gap-4">
-          <button
-            onClick={() => setCookingStep((s) => Math.max(0, s - 1))}
-            disabled={cookingStep === 0}
-            className="flex-1 h-16 rounded-2xl bg-stone-800 text-white text-lg font-medium disabled:opacity-25 flex items-center justify-center gap-2 hover:bg-stone-700 transition-colors active:scale-95"
-          >
-            <ChevronLeft className="w-6 h-6" /> Prev
-          </button>
-          {cookingStep < steps.length - 1 ? (
-            <button
-              onClick={() => setCookingStep((s) => s + 1)}
-              className="flex-1 h-16 rounded-2xl bg-amber-600 text-white text-lg font-medium flex items-center justify-center gap-2 hover:bg-amber-500 transition-colors active:scale-95"
-            >
-              Next <ChevronRight className="w-6 h-6" />
-            </button>
-          ) : (
-            <button
-              onClick={exitCooking}
-              className="flex-1 h-16 rounded-2xl bg-amber-600 text-white text-lg font-medium flex items-center justify-center gap-2 hover:bg-amber-500 transition-colors active:scale-95"
-            >
-              Done
-            </button>
-          )}
-        </div>
-      </div>
-    )}
     </>
   );
 }
