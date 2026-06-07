@@ -132,9 +132,12 @@ export default function Onboarding({ onDone }: OnboardingProps) {
 
       {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
+        {/* Wordmark */}
+        <Wordmark size={34} strokeWidth={3.4} className="mb-8" />
+
         {/* Visual */}
         <div
-          className="w-24 h-24 rounded-3xl flex items-center justify-center text-5xl mb-8 shadow-sm"
+          className="w-24 h-24 rounded-3xl flex items-center justify-center text-5xl mb-6 shadow-sm"
           style={{ background: "var(--mustard-wash)" }}
         >
           {screen.visual}
@@ -190,7 +193,7 @@ export default function Onboarding({ onDone }: OnboardingProps) {
               style={
                 i === step
                   ? { width: 20, height: 8, background: "var(--mustard)" }
-                  : { width: 8, height: 8, background: "var(--line)" }
+                  : { width: 8, height: 8, background: "var(--ink-faint)" }
               }
             />
           ))}
