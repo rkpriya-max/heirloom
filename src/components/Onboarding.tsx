@@ -3,43 +3,34 @@
 import { useState, useEffect } from "react";
 import { ArrowRight, ArrowLeft, X } from "lucide-react";
 import { createClient } from "@/lib/supabase";
+import { Wordmark } from "@/components/Wordmark";
 
 const STORAGE_KEY = "heirloom_onboarded";
 
 const screens = [
   {
-    bg: "bg-stone-50",
     visual: "📸",
-    visualBg: "bg-amber-100",
     step: "Step 1",
     headline: "Preserve any recipe.",
     body: "Photograph a handwritten card, record a voice, paste from a message, or drop a link. Sunday's Lunch structures it and keeps the original exactly as it was.",
   },
   {
-    bg: "bg-amber-50",
     visual: "🎙️",
-    visualBg: "bg-white",
     step: "Step 2",
     headline: "Capture who made it.",
     body: "Add a voice recording. Hear her describe the dish the way she always did — 'cook until it smells right.' Their words stay with the recipe, forever.",
   },
   {
-    bg: "bg-stone-800",
     visual: "🏡",
-    visualBg: "bg-stone-700",
     step: "Step 3",
     headline: "Share with your family.",
     body: "Invite family to your archive. Everyone adds. Everyone cooks. The recipes that matter most are always within reach of the people who love them.",
-    dark: true,
   },
   {
-    bg: "bg-amber-900",
     visual: "🍽️",
-    visualBg: "bg-amber-800",
     step: "Step 4",
     headline: "Gather around it.",
     body: "Plan dinners and events from your collection. Build menus, invite your community, and bring everyone to the same table. Every recipe is an invitation.",
-    dark: true,
   },
 ];
 
@@ -49,69 +40,127 @@ interface OnboardingProps {
 
 export default function Onboarding({ onDone }: OnboardingProps) {
   const [step, setStep] = useState(0);
-  const [exiting, setExiting] = useState(false);
+  const [complete, setComplete] = useState(false);
 
-  const finish = () => {
+  const markDone = () => {
     localStorage.setItem(STORAGE_KEY, "true");
-    // Persist across devices via Supabase user metadata
     const supabase = createClient();
     supabase.auth.updateUser({ data: { onboarded: true } });
-    setExiting(true);
-    setTimeout(onDone, 300);
+  };
+
+  const skip = () => {
+    markDone();
+    onDone();
   };
 
   const next = () => {
-    if (step < screens.length - 1) setStep((s) => s + 1);
-    else finish();
+    if (step < screens.length - 1) {
+      setStep((s) => s + 1);
+    } else {
+      markDone();
+      setComplete(true);
+    }
   };
+
+  // Completion screen — user explicitly taps to go to the app
+  if (complete) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex flex-col items-center justify-center px-8 text-center"
+        style={{ background: "var(--bg)" }}
+      >
+        <Wordmark size={52} strokeWidth={3.8} className="mb-10" />
+
+        <h2
+          className="font-serif text-3xl font-semibold leading-snug mb-4"
+          style={{ color: "var(--ink)" }}
+        >
+          Your kitchen, preserved.
+        </h2>
+        <p
+          className="text-base leading-relaxed max-w-xs mb-12"
+          style={{ color: "var(--ink-soft)" }}
+        >
+          Every recipe, every memory, every voice — kept safe for the people
+          who come after you.
+        </p>
+
+        <button
+          onClick={onDone}
+          className="w-full max-w-xs py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+          style={{
+            background: "var(--red)",
+            color: "#FFFDF8",
+            boxShadow: "0 8px 18px -8px rgba(122,27,26,0.8)",
+          }}
+        >
+          Go to Sunday&apos;s Lunch <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  }
 
   const screen = screens[step];
   const isLast = step === screens.length - 1;
-  const isDark = screen.dark;
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col transition-opacity duration-300 ${screen.bg} ${exiting ? "opacity-0" : "opacity-100"}`}>
-
+    <div
+      className="fixed inset-0 z-50 flex flex-col"
+      style={{ background: "var(--bg)" }}
+    >
       {/* Top bar */}
       <div className="flex justify-between items-center px-6 pt-6">
         {step > 0 ? (
           <button
             onClick={() => setStep((s) => s - 1)}
-            className={`flex items-center gap-1 text-sm font-medium transition-colors ${isDark ? "text-stone-400 hover:text-stone-200" : "text-stone-400 hover:text-stone-600"}`}
+            className="flex items-center gap-1 text-sm font-medium transition-opacity hover:opacity-70"
+            style={{ color: "var(--ink-faint)" }}
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Back
           </button>
-        ) : <div />}
-        {!isLast && (
-          <button
-            onClick={finish}
-            className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${isDark ? "text-stone-400 hover:text-stone-200" : "text-stone-400 hover:text-stone-600"}`}
-          >
-            <X className="w-3.5 h-3.5" /> Skip
-          </button>
+        ) : (
+          <div />
         )}
+        <button
+          onClick={skip}
+          className="flex items-center gap-1.5 text-sm font-medium transition-opacity hover:opacity-70"
+          style={{ color: "var(--ink-faint)" }}
+        >
+          <X className="w-3.5 h-3.5" /> Skip
+        </button>
       </div>
 
       {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
-
         {/* Visual */}
-        <div className={`w-24 h-24 rounded-3xl flex items-center justify-center text-5xl mb-8 shadow-sm ${screen.visualBg}`}>
+        <div
+          className="w-24 h-24 rounded-3xl flex items-center justify-center text-5xl mb-8 shadow-sm"
+          style={{ background: "var(--mustard-wash)" }}
+        >
           {screen.visual}
         </div>
 
         {/* Step label */}
-        <p className={`text-xs font-semibold uppercase tracking-widest mb-3 ${isDark ? "text-amber-400" : "text-amber-600"}`}>
-          {screen.step} of 4
+        <p
+          className="text-[10.5px] font-bold uppercase tracking-[0.22em] mb-3"
+          style={{ color: "var(--mustard)" }}
+        >
+          {screen.step} of {screens.length}
         </p>
 
         {/* Headline */}
-        <h1 className={`font-serif text-3xl leading-snug mb-4 ${isDark ? "text-white" : "text-stone-800"}`}>
+        <h1
+          className="font-serif text-3xl font-semibold leading-snug mb-4"
+          style={{ color: "var(--ink)" }}
+        >
           {screen.headline}
         </h1>
 
         {/* Body */}
-        <p className={`text-base leading-relaxed max-w-xs ${isDark ? "text-stone-300" : "text-stone-500"}`}>
+        <p
+          className="text-base leading-relaxed max-w-xs"
+          style={{ color: "var(--ink-soft)" }}
+        >
           {screen.body}
         </p>
       </div>
@@ -120,13 +169,12 @@ export default function Onboarding({ onDone }: OnboardingProps) {
       <div className="px-8 pb-12 space-y-6">
         <button
           onClick={next}
-          className={`w-full py-4 rounded-2xl font-medium text-base flex items-center justify-center gap-2 transition-colors ${
-            isLast
-              ? "bg-amber-500 hover:bg-amber-400 text-white"
-              : isDark
-              ? "bg-white hover:bg-stone-100 text-stone-800"
-              : "bg-stone-800 hover:bg-stone-700 text-white"
-          }`}
+          className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+          style={{
+            background: "var(--red)",
+            color: "#FFFDF8",
+            boxShadow: "0 8px 18px -8px rgba(122,27,26,0.7)",
+          }}
         >
           {isLast ? "Start preserving" : "Next"}
           <ArrowRight className="w-4 h-4" />
@@ -138,13 +186,12 @@ export default function Onboarding({ onDone }: OnboardingProps) {
             <button
               key={i}
               onClick={() => setStep(i)}
-              className={`rounded-full transition-all duration-200 ${
+              className="rounded-full transition-all duration-200"
+              style={
                 i === step
-                  ? "w-5 h-2 bg-amber-500"
-                  : isDark
-                  ? "w-2 h-2 bg-stone-600 hover:bg-stone-500"
-                  : "w-2 h-2 bg-stone-300 hover:bg-stone-400"
-              }`}
+                  ? { width: 20, height: 8, background: "var(--mustard)" }
+                  : { width: 8, height: 8, background: "var(--line)" }
+              }
             />
           ))}
         </div>
