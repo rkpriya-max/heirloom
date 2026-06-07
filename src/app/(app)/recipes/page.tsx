@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Globe, Lock, ChevronRight } from "lucide-react";
+import { Plus, Search, Globe, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
 interface Recipe {
@@ -52,44 +52,69 @@ export default function RecipesPage() {
 
   if (loading) {
     return (
-      <main className="max-w-lg mx-auto px-4 pt-10">
+      <main className="max-w-lg mx-auto px-5 pt-14">
         <div className="animate-pulse space-y-3">
-          <div className="h-8 bg-stone-200 rounded w-32" />
-          <div className="h-12 bg-stone-200 rounded-xl" />
-          {[1, 2, 3].map((i) => <div key={i} className="h-20 bg-stone-200 rounded-2xl" />)}
+          <div className="h-8 bg-stone-200 rounded w-40" />
+          <div className="h-11 bg-stone-200 rounded-xl" />
+          {[1, 2, 3].map((i) => <div key={i} className="h-24 bg-stone-200 rounded-2xl" />)}
         </div>
       </main>
     );
   }
 
   return (
-    <main className="max-w-lg mx-auto px-4 pt-10 pb-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-serif text-stone-800">Recipes</h1>
-        <Link href="/recipes/new" className="bg-amber-600 text-white rounded-full p-2 hover:bg-amber-700 transition-colors">
-          <Plus className="w-5 h-5" />
+    <main className="max-w-lg mx-auto px-5 pt-14 pb-6">
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <p className="text-[10.5px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--ink-faint)' }}>
+            From memory to legacy
+          </p>
+          <h1 className="font-serif text-3xl font-semibold mt-1" style={{ color: 'var(--ink)' }}>
+            The Collection
+          </h1>
+        </div>
+        <Link
+          href="/recipes/new"
+          className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+          style={{ background: 'var(--red)', boxShadow: '0 8px 18px -8px rgba(122,27,26,0.8)' }}
+        >
+          <Plus className="w-5 h-5 text-white" strokeWidth={2.2} />
         </Link>
       </div>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+      {/* Search */}
+      <div className="relative mb-3.5">
+        <Search
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4"
+          style={{ color: 'var(--ink-faint)' }}
+          strokeWidth={2}
+        />
         <input
           type="text"
-          placeholder="Search recipes..."
+          placeholder="Search recipes…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 bg-white border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-amber-400"
+          onFocus={(e) => (e.target.style.borderColor = 'var(--mustard-soft)')}
+          onBlur={(e) => (e.target.style.borderColor = 'var(--line)')}
+          className="w-full pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none"
+          style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--ink)' }}
         />
       </div>
 
+      {/* Filter chips */}
       {filters.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-1 mb-5 scrollbar-hide">
           {filters.map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all
-                ${filter === f ? "bg-amber-600 text-white" : "bg-white border border-stone-200 text-stone-600 hover:border-stone-300"}`}
+              className="shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all"
+              style={filter === f
+                ? { background: 'var(--red)', color: '#FFFDF8' }
+                : { background: 'var(--surface)', color: 'var(--ink-soft)', border: '1px solid var(--line)' }
+              }
             >
               {f}
             </button>
@@ -97,45 +122,85 @@ export default function RecipesPage() {
         </div>
       )}
 
+      {/* Empty state */}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
           {recipes.length === 0 ? (
             <>
               <div className="text-4xl mb-3">📋</div>
-              <p className="text-stone-600 font-medium mb-1">No recipes yet</p>
-              <p className="text-stone-400 text-sm mb-4">Scan a handwritten card or type one in.</p>
-              <Link href="/recipes/new" className="text-amber-600 text-sm font-medium">Add your first recipe →</Link>
+              <p className="font-semibold mb-1" style={{ color: 'var(--ink-soft)' }}>No recipes yet</p>
+              <p className="text-sm mb-5" style={{ color: 'var(--ink-faint)' }}>Scan a handwritten card or type one in.</p>
+              <Link href="/recipes/new" className="text-sm font-bold" style={{ color: 'var(--red)' }}>
+                Add your first recipe →
+              </Link>
             </>
           ) : (
-            <p className="text-stone-400 text-sm">No recipes match your search.</p>
+            <p className="text-sm" style={{ color: 'var(--ink-faint)' }}>No recipes match your search.</p>
           )}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           {filtered.map((r) => (
-            <Link key={r.id} href={`/recipes/${r.id}`}
-              className="flex gap-4 bg-white rounded-2xl border border-stone-100 p-4 hover:border-stone-200 transition-colors">
-              {r.cover_image_url
-                ? <img src={r.cover_image_url} alt={r.title} className="w-14 h-14 rounded-xl object-cover shrink-0" />
-                : <div className="w-14 h-14 rounded-xl bg-amber-50 flex items-center justify-center text-2xl shrink-0">🍲</div>
-              }
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-medium text-stone-800 text-sm leading-snug">{r.title}</p>
-                  {r.is_public
-                    ? <Globe className="w-3.5 h-3.5 text-stone-300 shrink-0 mt-0.5" />
-                    : <Lock className="w-3.5 h-3.5 text-stone-300 shrink-0 mt-0.5" />}
+            <Link
+              key={r.id}
+              href={`/recipes/${r.id}`}
+              className="flex overflow-hidden rounded-2xl transition-opacity hover:opacity-90"
+              style={{
+                background: 'var(--surface)',
+                border: '1px solid var(--line)',
+                boxShadow: '0 1px 0 rgba(42,28,21,0.04), 0 6px 20px -12px rgba(42,28,21,0.2)',
+              }}
+            >
+              {/* Cover band — full card height, no padding */}
+              {r.cover_image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={r.cover_image_url}
+                  alt={r.title}
+                  className="w-20 flex-none object-cover self-stretch"
+                />
+              ) : (
+                <div
+                  className="w-20 flex-none flex items-center justify-center text-3xl"
+                  style={{ background: 'linear-gradient(135deg, #F6DEB8, #EECB8A)' }}
+                >
+                  🍲
                 </div>
-                {r.description && <p className="text-xs text-stone-400 mt-1 line-clamp-1">{r.description}</p>}
+              )}
+
+              {/* Content */}
+              <div className="flex-1 min-w-0 px-4 py-3.5">
+                <div className="flex items-start gap-2">
+                  <p
+                    className="font-serif font-semibold leading-snug flex-1"
+                    style={{ fontSize: 18, color: 'var(--ink)' }}
+                  >
+                    {r.title}
+                  </p>
+                  {r.is_public
+                    ? <Globe className="w-3.5 h-3.5 shrink-0 mt-1" style={{ color: 'var(--ink-faint)' }} strokeWidth={1.8} />
+                    : <Lock className="w-3.5 h-3.5 shrink-0 mt-1" style={{ color: 'var(--ink-faint)' }} strokeWidth={1.8} />
+                  }
+                </div>
+                {r.description && (
+                  <p className="text-[12.5px] mt-1 line-clamp-1" style={{ color: 'var(--ink-faint)' }}>
+                    {r.description}
+                  </p>
+                )}
                 {r.recipe_tags.length > 0 && (
-                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                    {r.recipe_tags.slice(0, 3).map(({ tag }) => (
-                      <span key={tag} className="text-[10px] bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">{tag}</span>
+                  <div className="flex gap-1.5 mt-2.5 flex-wrap">
+                    {r.recipe_tags.slice(0, 2).map(({ tag }) => (
+                      <span
+                        key={tag}
+                        className="text-[10.5px] font-bold rounded-full px-2 py-0.5"
+                        style={{ background: 'var(--mustard-wash)', color: 'var(--red-deep)' }}
+                      >
+                        {tag}
+                      </span>
                     ))}
                   </div>
                 )}
               </div>
-              <ChevronRight className="w-4 h-4 text-stone-300 shrink-0 self-center" />
             </Link>
           ))}
         </div>

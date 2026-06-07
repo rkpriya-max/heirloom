@@ -311,21 +311,24 @@ export default function RecipeDetailPage() {
 
   return (
     <>
-    <main className="max-w-lg mx-auto min-h-screen bg-stone-50">
-      <div className="sticky top-0 bg-white/90 backdrop-blur-sm border-b border-stone-100 z-10 px-4 py-3">
-        <div className="flex items-center justify-between mb-3">
-          <button onClick={() => router.back()} className="flex items-center gap-1 text-stone-500 text-sm">
-            <ChevronLeft className="w-4 h-4" /> Back
+    <main className="max-w-lg mx-auto min-h-screen" style={{ background: 'var(--bg)' }}>
+      <div className="sticky top-0 z-10 px-4 pb-3" style={{ background: 'rgba(243,233,215,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--line)', paddingTop: 'max(env(safe-area-inset-top), 48px)' }}>
+        <div className="flex items-center justify-between mb-2.5">
+          <button onClick={() => router.back()} className="flex items-center gap-1 text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>
+            <ChevronLeft className="w-4 h-4" strokeWidth={2.2} /> Collection
           </button>
-          <span className="flex items-center gap-1 text-xs text-stone-400">
-            {recipe.is_public ? <><Globe className="w-3 h-3" /> Public</> : <><Lock className="w-3 h-3" /> Private</>}
+          <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: 'var(--ink-faint)' }}>
+            {recipe.is_public ? <><Globe className="w-3 h-3" strokeWidth={1.8} /> Shared</> : <><Lock className="w-3 h-3" strokeWidth={1.8} /> Private</>}
           </span>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1.5">
           {TABS.map(({ key, label, icon }) => (
             <button key={key} onClick={() => setTab(key)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all
-                ${tab === key ? "bg-amber-600 text-white" : "text-stone-500 hover:bg-stone-100"}`}>
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all"
+              style={tab === key
+                ? { background: 'var(--red)', color: '#FFFDF8' }
+                : { color: 'var(--ink-soft)' }
+              }>
               {icon}{label}
             </button>
           ))}
@@ -374,7 +377,7 @@ export default function RecipeDetailPage() {
           </div>
         ) : (
           <div className="flex items-start gap-2 mb-1">
-            <h1 className="text-2xl font-serif text-stone-800 flex-1">{recipe.title}</h1>
+            <h1 className="font-serif font-semibold flex-1" style={{ fontSize: 28, lineHeight: 1.1, color: 'var(--ink)' }}>{recipe.title}</h1>
             {currentUser && (
               <button onClick={startEditing}
                 className="mt-1 text-stone-400 hover:text-amber-600 transition-colors shrink-0">
@@ -383,7 +386,7 @@ export default function RecipeDetailPage() {
             )}
           </div>
         )}
-        {!editing && recipe.description && <p className="text-stone-500 text-sm mb-3">{recipe.description}</p>}
+        {!editing && recipe.description && <p className="font-serif italic text-base mb-3 mt-1" style={{ color: 'var(--ink-soft)' }}>{recipe.description}</p>}
         <div className="flex items-center gap-4 text-stone-400 text-xs mb-4">
           {editing ? (
             <>
@@ -408,7 +411,7 @@ export default function RecipeDetailPage() {
         {tags.length > 0 && (
           <div className="flex gap-1.5 flex-wrap mb-6">
             {tags.map((tag) => (
-              <span key={tag} className="text-[10px] bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">{tag}</span>
+              <span key={tag} className="text-[10.5px] font-bold rounded-full px-2 py-0.5" style={{ background: 'var(--mustard-wash)', color: 'var(--red-deep)' }}>{tag}</span>
             ))}
           </div>
         )}
@@ -453,17 +456,17 @@ export default function RecipeDetailPage() {
               </section>
             ) : ingredients.length > 0 ? (
               <section>
-                <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-4">Ingredients</h2>
+                <h2 className="text-[10.5px] font-bold uppercase mb-4" style={{ letterSpacing: '0.22em', color: 'var(--ink-faint)' }}>Ingredients</h2>
                 <div className="space-y-5">
                   {ingredients.map((group) => (
                     <div key={group.id}>
                       {group.section && (
-                        <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2">{group.section}</p>
+                        <p className="text-xs font-bold uppercase mb-2" style={{ letterSpacing: '0.08em', color: 'var(--mustard)' }}>{group.section}</p>
                       )}
-                      <ul className="space-y-2">
+                      <ul className="space-y-2.5">
                         {group.items.map((ing, i) => (
-                          <li key={i} className="flex items-start gap-2 text-stone-700 text-sm">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
+                          <li key={i} className="flex items-start gap-3 text-sm" style={{ color: 'var(--ink)' }}>
+                            <span className="w-1.5 h-1.5 rounded-full mt-[7px] shrink-0" style={{ background: 'var(--mustard)' }} />
                             {ing}
                           </li>
                         ))}
@@ -487,12 +490,12 @@ export default function RecipeDetailPage() {
               </section>
             ) : steps.length > 0 ? (
               <section>
-                <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-4">Instructions</h2>
-                <ol className="space-y-4">
+                <h2 className="text-[10.5px] font-bold uppercase mb-4" style={{ letterSpacing: '0.22em', color: 'var(--ink-faint)' }}>Method</h2>
+                <ol className="space-y-5">
                   {steps.map((step, i) => (
-                    <li key={step.id} className="flex gap-3 text-sm text-stone-700">
-                      <span className="font-serif text-amber-600 text-lg leading-snug shrink-0 w-5">{i + 1}</span>
-                      <span className="leading-relaxed">{step.content}</span>
+                    <li key={step.id} className="flex gap-3.5">
+                      <span className="font-script shrink-0 w-7 text-center" style={{ fontSize: 34, color: 'var(--red)', lineHeight: 0.85 }}>{i + 1}</span>
+                      <span className="text-sm leading-relaxed pt-1" style={{ color: 'var(--ink)' }}>{step.content}</span>
                     </li>
                   ))}
                 </ol>
@@ -511,9 +514,9 @@ export default function RecipeDetailPage() {
                 />
               </section>
             ) : recipe.notes ? (
-              <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-amber-600 mb-2">Family notes</p>
-                <p className="text-stone-600 text-sm leading-relaxed italic">{recipe.notes}</p>
+              <div className="relative rounded-2xl overflow-hidden p-5" style={{ background: 'var(--mustard-wash)' }}>
+                <p className="text-[11px] font-bold uppercase mb-2" style={{ letterSpacing: '0.14em', color: 'var(--red)' }}>Family notes</p>
+                <p className="font-serif italic text-base leading-relaxed" style={{ color: 'var(--ink)' }}>{recipe.notes}</p>
               </div>
             ) : null}
 
@@ -560,23 +563,23 @@ export default function RecipeDetailPage() {
         {/* ── MEMORIES TAB ── */}
         {tab === "memories" && (
           <div className="space-y-4">
-            <p className="text-sm text-stone-500">Stories, moments, and people connected to this recipe. These live alongside it forever.</p>
+            <p className="font-serif italic text-base leading-relaxed" style={{ color: 'var(--ink-soft)' }}>The stories that live alongside this dish — kept here forever.</p>
             {memories.map((m) => {
               const name = nameFor(m.user_id);
               return (
-                <div key={m.id} className="bg-white border border-stone-100 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-7 h-7 rounded-full bg-stone-200 flex items-center justify-center text-xs font-medium text-stone-600">{initial(name)}</div>
+                <div key={m.id} className="rounded-2xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)', boxShadow: '0 1px 0 rgba(42,28,21,0.04), 0 6px 20px -12px rgba(42,28,21,0.2)' }}>
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0" style={{ background: 'var(--mustard-wash)', color: 'var(--red-deep)' }}>{initial(name)}</div>
                     <div>
-                      <p className="text-xs font-medium text-stone-700">{name}</p>
-                      <p className="text-xs text-stone-400">{formatDate(m.created_at)}</p>
+                      <p className="text-sm font-bold" style={{ color: 'var(--ink)' }}>{name}</p>
+                      <p className="text-xs" style={{ color: 'var(--ink-faint)' }}>{formatDate(m.created_at)}</p>
                     </div>
                   </div>
-                  <p className="text-stone-700 text-sm leading-relaxed italic">&ldquo;{m.content}&rdquo;</p>
+                  <p className="font-serif italic text-base leading-relaxed" style={{ color: 'var(--ink)' }}>&ldquo;{m.content}&rdquo;</p>
                   {m.tagged_people.length > 0 && (
-                    <div className="flex gap-1.5 mt-3">
+                    <div className="flex gap-1.5 mt-3 flex-wrap">
                       {m.tagged_people.map((p) => (
-                        <span key={p} className="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span key={p} className="text-[10.5px] font-bold rounded-full px-2.5 py-1 flex items-center gap-1" style={{ background: 'var(--mustard-wash)', color: 'var(--red-deep)' }}>
                           <Tag className="w-2.5 h-2.5" />{p}
                         </span>
                       ))}
@@ -585,17 +588,19 @@ export default function RecipeDetailPage() {
                 </div>
               );
             })}
-            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
-              <p className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1"><Plus className="w-3 h-3" /> Add a memory</p>
+            <div className="rounded-2xl p-4" style={{ background: 'var(--mustard-wash)' }}>
+              <p className="text-xs font-bold mb-2.5 flex items-center gap-1" style={{ color: 'var(--red)' }}><Plus className="w-3 h-3" /> Add a memory</p>
               <textarea
                 value={newMemory}
                 onChange={(e) => setNewMemory(e.target.value)}
                 placeholder="Share a story, a moment, a memory connected to this recipe..."
                 rows={3}
-                className="w-full text-sm bg-white border border-amber-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-400 resize-none"
+                className="w-full text-sm rounded-xl px-3 py-2.5 focus:outline-none resize-none"
+                style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--ink)' }}
               />
               <button onClick={handleAddMemory} disabled={savingMemory}
-                className="mt-2 w-full bg-amber-600 text-white text-sm py-2.5 rounded-xl hover:bg-amber-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50">
+                className="mt-2 w-full text-sm py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-opacity"
+                style={{ background: 'var(--red)', color: '#FFFDF8' }}>
                 {savingMemory ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : "Save memory"}
               </button>
             </div>
@@ -605,26 +610,26 @@ export default function RecipeDetailPage() {
         {/* ── VERSIONS TAB ── */}
         {tab === "versions" && (
           <div className="space-y-4">
-            <p className="text-sm text-stone-500">Different people make this differently. Each version is a branch of the same root recipe.</p>
+            <p className="font-serif italic text-base leading-relaxed" style={{ color: 'var(--ink-soft)' }}>Everyone makes it a little differently. Each is a branch of the same root.</p>
             {versions.length === 0 && (
-              <div className="text-center py-8 text-stone-400 text-sm">No versions yet. Be the first to save yours.</div>
+              <p className="text-sm text-center py-6" style={{ color: 'var(--ink-faint)' }}>No versions yet. Be the first to save yours.</p>
             )}
             {versions.map((v, i) => {
               const authorName = v.author_id ? nameFor(v.author_id) : "Unknown";
               return (
-                <div key={v.id} className={`bg-white border rounded-2xl p-4 ${i === 0 ? "border-amber-200" : "border-stone-100"}`}>
+                <div key={v.id} className="rounded-2xl p-4" style={{ background: 'var(--surface)', border: `1px solid ${i === 0 ? 'var(--mustard-soft)' : 'var(--line)'}` }}>
                   <div className="flex items-center gap-2 mb-1">
-                    <GitBranch className="w-3.5 h-3.5 text-amber-600" />
-                    <p className="font-medium text-stone-800 text-sm">{v.label}</p>
-                    {i === 0 && <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Original</span>}
+                    <GitBranch className="w-4 h-4 shrink-0" style={{ color: 'var(--red)' }} strokeWidth={1.9} />
+                    <p className="font-serif font-semibold text-base flex-1" style={{ color: 'var(--ink)' }}>{v.label}</p>
+                    {i === 0 && <span className="text-[10px] font-bold rounded-full px-2 py-0.5" style={{ background: 'var(--mustard)', color: '#3a2606' }}>ORIGINAL</span>}
                   </div>
-                  <p className="text-xs text-stone-400 mb-2">by {authorName} · {formatDate(v.created_at)}</p>
-                  {v.notes && <p className="text-stone-600 text-sm italic">{v.notes}</p>}
+                  <p className="text-xs font-semibold mb-2" style={{ color: 'var(--ink-faint)' }}>by {authorName} · {formatDate(v.created_at)}</p>
+                  {v.notes && <p className="font-serif italic text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>{v.notes}</p>}
                 </div>
               );
             })}
-            <button className="w-full border-2 border-dashed border-stone-200 rounded-2xl p-4 text-stone-400 text-sm flex items-center justify-center gap-2 hover:border-amber-300 hover:text-amber-600 transition-colors">
-              <Plus className="w-4 h-4" /> Save my version of this recipe
+            <button className="w-full rounded-2xl p-4 text-sm font-bold flex items-center justify-center gap-2 transition-colors" style={{ border: '1.5px dashed var(--line-strong)', color: 'var(--red)' }}>
+              <Plus className="w-4 h-4" /> Save my version
             </button>
           </div>
         )}
