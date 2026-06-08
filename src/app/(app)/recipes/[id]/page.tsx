@@ -76,6 +76,10 @@ export default function RecipeDetailPage() {
   const [newComment, setNewComment] = useState("");
   const [savingComment, setSavingComment] = useState(false);
   const [savingMemory, setSavingMemory] = useState(false);
+  const [addingVersion, setAddingVersion] = useState(false);
+  const [versionLabel, setVersionLabel] = useState("");
+  const [versionNotes, setVersionNotes] = useState("");
+  const [savingVersion, setSavingVersion] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const { toast, show: showToast, clear: clearToast } = useToast();
 
@@ -239,6 +243,26 @@ export default function RecipeDetailPage() {
     );
     setEditSteps(steps.map((s) => s.content).join("\n"));
     setEditing(true);
+  };
+
+  const handleSaveVersion = async () => {
+    if (!versionLabel.trim() || !currentUser || !id) return;
+    setSavingVersion(true);
+    const supabase = createClient();
+    const { data, error } = await supabase.from("recipe_versions").insert({
+      recipe_id: id,
+      label: versionLabel.trim(),
+      notes: versionNotes.trim() || null,
+      author_id: currentUser.id,
+    }).select("id, label, notes, created_at, author_id").single();
+    if (!error && data) {
+      setVersions((prev) => [...prev, data as Version]);
+      setAddingVersion(false);
+      setVersionLabel("");
+      setVersionNotes("");
+      showToast("Version saved");
+    }
+    setSavingVersion(false);
   };
 
   const handleSaveEdit = async () => {
@@ -628,9 +652,59 @@ export default function RecipeDetailPage() {
                 </div>
               );
             })}
-            <button className="w-full rounded-2xl p-4 text-sm font-bold flex items-center justify-center gap-2 transition-colors" style={{ border: '1.5px dashed var(--mustard)', color: 'var(--red)' }}>
-              <Plus className="w-4 h-4" /> Save my version
-            </button>
+            {!addingVersion ? (
+              <button
+                onClick={() => {
+                  setVersionLabel(`${currentUser?.name ?? "My"}'s version`);
+                  setAddingVersion(true);
+                }}
+                className="w-full rounded-2xl p-4 text-sm font-bold flex items-center justify-center gap-2 transition-opacity hover:opacity-70"
+                style={{ border: '1.5px dashed var(--mustard)', color: 'var(--red)' }}
+              >
+                <Plus className="w-4 h-4" /> Save my version
+              </button>
+            ) : (
+              <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--mustard-soft)' }}>
+                <p className="text-[10.5px] font-bold uppercase tracking-[0.18em]" style={{ color: 'var(--mustard)' }}>Your version</p>
+                <input
+                  value={versionLabel}
+                  onChange={(e) => setVersionLabel(e.target.value)}
+                  placeholder="Name your version"
+                  autoFocus
+                  className="w-full text-sm rounded-xl px-3 py-2.5 focus:outline-none"
+                  style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', color: 'var(--ink)' }}
+                  onFocus={(e) => (e.target.style.borderColor = 'var(--mustard-soft)')}
+                  onBlur={(e) => (e.target.style.borderColor = 'var(--line)')}
+                />
+                <textarea
+                  value={versionNotes}
+                  onChange={(e) => setVersionNotes(e.target.value)}
+                  placeholder="What do you do differently? Any tweaks, swaps or secrets…"
+                  rows={4}
+                  className="w-full text-sm rounded-xl px-3 py-2.5 focus:outline-none resize-none"
+                  style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', color: 'var(--ink)', lineHeight: 1.55 }}
+                  onFocus={(e) => (e.target.style.borderColor = 'var(--mustard-soft)')}
+                  onBlur={(e) => (e.target.style.borderColor = 'var(--line)')}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveVersion}
+                    disabled={!versionLabel.trim() || savingVersion}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-opacity disabled:opacity-40"
+                    style={{ background: 'var(--red)', color: '#FFFDF8' }}
+                  >
+                    {savingVersion ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save version"}
+                  </button>
+                  <button
+                    onClick={() => { setAddingVersion(false); setVersionLabel(""); setVersionNotes(""); }}
+                    className="px-4 py-2.5 rounded-xl text-sm font-bold transition-opacity hover:opacity-70"
+                    style={{ background: 'var(--surface-2)', color: 'var(--ink-soft)' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
