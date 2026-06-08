@@ -15,6 +15,23 @@
   --ink-faint: #9C8975;
   --line: rgba(42,28,21,0.10);
 
+  /* --sl-* aliases used by Onboarding (and future screens) */
+  --sl-bg: #F3E9D7;
+  --sl-surface: #FFFDF8;
+  --sl-surface-2: #FBF4E7;
+  --sl-red: #93231F;
+  --sl-red-deep: #7A1B1A;
+  --sl-red-700: #6A1715;
+  --sl-mustard: #C8901E;
+  --sl-mustard-soft: #D9A53A;
+  --sl-mustard-wash: #F6E7C6;
+  --sl-ink: #2A1C15;
+  --sl-ink-soft: #6E5947;
+  --sl-ink-faint: #9C8975;
+  --sl-cream: #F4EAD7;
+  --sl-line: rgba(42,28,21,0.10);
+  --sl-line-strong: rgba(42,28,21,0.16);
+
   /* Override Tailwind color tokens — in :root so they win over @layer theme */
   --color-white: #FFFDF8;
   --color-stone-50: #F3E9D7;
