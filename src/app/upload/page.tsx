@@ -36,15 +36,12 @@ export default function UploadPage() {
   const [recording, setRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [supported, setSupported] = useState(true);
-  const [isIOS, setIsIOS] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
-    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
-    setIsIOS(ios);
     setIsTouch("ontouchstart" in window || navigator.maxTouchPoints > 0);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -103,7 +100,11 @@ export default function UploadPage() {
       // Capture raw audio in parallel with speech recognition
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/ogg";
+        const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : "audio/ogg";
         const mediaRecorder = new MediaRecorder(stream, { mimeType });
         audioChunksRef.current = [];
         mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
@@ -343,21 +344,7 @@ export default function UploadPage() {
         {/* Voice tab */}
         {tab === "voice" && (
           <div className="bg-white border border-stone-200 rounded-2xl p-6">
-            {isIOS ? (
-              <div className="text-center py-4 space-y-3">
-                <div className="text-3xl">📱</div>
-                <p className="text-stone-700 font-medium text-sm">Safari on iPhone doesn&apos;t support live recording.</p>
-                <p className="text-stone-400 text-sm leading-relaxed">
-                  Use the <strong>Text tab</strong> instead — tap the 🎤 mic key on your iPhone keyboard and speak. It transcribes everything perfectly.
-                </p>
-                <button
-                  onClick={() => { setTab("text"); setError(null); }}
-                  className="w-full bg-amber-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-amber-700 transition-colors"
-                >
-                  Switch to Text tab →
-                </button>
-              </div>
-            ) : !supported ? (
+            {!supported ? (
               <div className="text-center py-6">
                 <p className="text-stone-500 text-sm">Voice recording isn&apos;t supported in this browser.</p>
                 <p className="text-stone-400 text-xs mt-2">Try Chrome on desktop or Android.</p>
