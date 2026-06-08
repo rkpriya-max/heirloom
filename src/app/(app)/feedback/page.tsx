@@ -23,8 +23,8 @@ const C = {
 
 const CATEGORIES = ["A bug", "An idea", "Recipes & scanning", "Sharing & family", "Something else"];
 
-function Heart({ filled, onClick, onEnter, onLeave }: {
-  filled: boolean; onClick: () => void; onEnter: () => void; onLeave: () => void;
+function Heart({ value, filled, onClick, onEnter, onLeave }: {
+  value: number; filled: boolean; onClick: () => void; onEnter: () => void; onLeave: () => void;
 }) {
   return (
     <button
@@ -32,7 +32,7 @@ function Heart({ filled, onClick, onEnter, onLeave }: {
       onClick={onClick}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
-      aria-label="Rate"
+      aria-label={`Rate ${value} out of 5`}
       style={{ background: "none", border: "none", padding: 0, cursor: "pointer", lineHeight: 0 }}
     >
       <svg width={38} height={38} viewBox="0 0 24 24" fill={filled ? C.red : C.lineStrong} style={{ transition: "fill .15s" }} aria-hidden="true">
@@ -117,7 +117,7 @@ export default function FeedbackPage() {
         <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.16em", color: C.inkFaint }}>Feedback</span>
       </div>
 
-      <div style={{ padding: "8px 26px 80px", maxWidth: 520, margin: "0 auto" }}>
+      <div style={{ padding: "8px 26px max(env(safe-area-inset-bottom) + 100px, 110px)", maxWidth: 520, margin: "0 auto" }}>
         {/* Ladle mark */}
         <svg viewBox="0 0 54 80" width={40} style={{ color: C.red, marginBottom: 16 }} aria-hidden="true">
           <path d="M37 6 C 25 4, 24 18, 33 19" fill="none" stroke="currentColor" strokeWidth={3.4} strokeLinecap="round" />
@@ -140,6 +140,7 @@ export default function FeedbackPage() {
             {[1, 2, 3, 4, 5].map((v) => (
               <Heart
                 key={v}
+                value={v}
                 filled={v <= (hover || rating)}
                 onClick={() => setRating(v)}
                 onEnter={() => setHover(v)}
