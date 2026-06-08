@@ -345,6 +345,27 @@ export default function HomePage() {
           </section>
         )}
 
+        {/* Feedback */}
+        <Link
+          href="/feedback"
+          className="flex items-center gap-3 rounded-2xl px-4 py-4 transition-opacity hover:opacity-80"
+          style={{ background: "var(--surface)", border: "1px solid var(--line)", boxShadow: "0 1px 0 rgba(42,28,21,0.04), 0 6px 20px -12px rgba(42,28,21,0.15)" }}
+        >
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--mustard-wash)" }}>
+            <svg viewBox="0 0 54 80" width={22} style={{ color: "var(--red)" }} aria-hidden="true">
+              <path d="M37 6 C 25 4, 24 18, 33 19" fill="none" stroke="currentColor" strokeWidth={3.6} strokeLinecap="round" />
+              <path d="M33 19 C 35 31, 31 41, 27 48" fill="none" stroke="currentColor" strokeWidth={3.6} strokeLinecap="round" />
+              <path d="M10 48 A 16 16 0 0 0 42 48" fill="none" stroke="currentColor" strokeWidth={3.6} strokeLinecap="round" />
+              <ellipse cx="26" cy="48" rx="16" ry="4.4" fill="none" stroke="currentColor" strokeWidth={3.6} />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm" style={{ color: "var(--ink)" }}>How did we cook?</p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--ink-faint)" }}>Tell us what&apos;s working — and what&apos;s not.</p>
+          </div>
+          <ChevronRight className="w-4 h-4 shrink-0" style={{ color: "var(--ink-faint)" }} />
+        </Link>
+
       </main>
 
       {/* Profile sheet */}
