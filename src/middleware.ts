@@ -4,6 +4,17 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
+  const isAuthRoute = request.nextUrl.pathname.startsWith("/login") ||
+    request.nextUrl.pathname.startsWith("/signup");
+  const isAppRoute = request.nextUrl.pathname.startsWith("/home") ||
+    request.nextUrl.pathname.startsWith("/recipes") ||
+    request.nextUrl.pathname.startsWith("/family") ||
+    request.nextUrl.pathname.startsWith("/events");
+
+  if (!isAuthRoute && !isAppRoute) {
+    return supabaseResponse;
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -21,14 +32,21 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const userPromise = supabase.auth.getUser();
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("timeout")), 5000)
+  );
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/signup");
-  const isAppRoute = request.nextUrl.pathname.startsWith("/home") ||
-    request.nextUrl.pathname.startsWith("/recipes") ||
-    request.nextUrl.pathname.startsWith("/family") ||
-    request.nextUrl.pathname.startsWith("/events");
+  let user = null;
+  try {
+    const { data } = await Promise.race([userPromise, timeoutPromise]);
+    user = data.user;
+  } catch {
+    if (isAppRoute) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return supabaseResponse;
+  }
 
   if (!user && isAppRoute) {
     return NextResponse.redirect(new URL("/login", request.url));
